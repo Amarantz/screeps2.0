@@ -8,10 +8,15 @@
     "baseUrl": "src/",
     "sourceMap": true,
     "strict": true,
+    "noImplicitThis": false,
+    "skipLibCheck": true,
     "experimentalDecorators": true,
     "noImplicitReturns": true,
+    "allowUnusedLabels": true,
     "allowSyntheticDefaultImports": true,
-    "allowUnreachableCode": false
+    "allowUnreachableCode": false,
+    "strictPropertyInitialization": false,
+    "removeComments": true
   },
   "exclude": [
     "node_modules"

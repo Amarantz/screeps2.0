@@ -1,10 +1,10 @@
 "use strict";
 
-import clear from 'rollup-plugin-clear';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import typescript from 'rollup-plugin-typescript2';
-import screeps from 'rollup-plugin-screeps';
+import clear from "rollup-plugin-clear";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import typescript from "rollup-plugin-typescript2";
+import screeps from "rollup-plugin-screeps";
 
 let cfg;
 const dest = process.env.DEST;
@@ -19,14 +19,19 @@ export default {
   output: {
     file: "dist/main.js",
     format: "cjs",
+    intro: "const __PROFILER_ENABLED__ = true",
     sourcemap: true
   },
 
   plugins: [
     clear({ targets: ["dist"] }),
     resolve(),
-    commonjs(),
-    typescript({tsconfig: "./tsconfig.json"}),
-    screeps({config: cfg, dryRun: cfg == null})
+    commonjs({
+      namedExports: {
+        "src/BigBrain": ["_BigBrain"]
+      }
+    }),
+    typescript({ tsconfig: "./tsconfig.json" }),
+    screeps({ config: cfg, dryRun: cfg == null })
   ]
-}
+};

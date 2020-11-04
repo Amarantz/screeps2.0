@@ -33,6 +33,22 @@ module.exports = {
     "@typescript-eslint/consistent-type-assertions": "error",
     "@typescript-eslint/consistent-type-definitions": "error",
     "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/restrict-template-expressions": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/restrict-plus-operands": "off",
+    "@typescript-eslint/no-empty": "off",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/interface-name": "off",
+    "@typescript-eslint/interface-over-type-literal": "off",
+    "@typescript-eslint/member-access": [
+      "on",
+      "no-public"
+    ],
     "@typescript-eslint/explicit-member-accessibility": [
       "error",
       {
@@ -67,12 +83,15 @@ module.exports = {
     "no-invalid-this": "off",
     "no-multiple-empty-lines": "off",
     "no-new-wrappers": "error",
+    "no-empty": "off",
+    "no-empty-interface": "off",
     "no-shadow": [
       "error",
       {
         hoist: "all"
       }
     ],
+    "sort-imports": "off",
     "no-throw-literal": "error",
     "no-trailing-spaces": "off",
     "no-undef-init": "error",
@@ -84,5 +103,6 @@ module.exports = {
     radix: "error",
     "sort-imports": "warn",
     "spaced-comment": "error",
+    "no-underscore-dangle": "off"
   }
 };
