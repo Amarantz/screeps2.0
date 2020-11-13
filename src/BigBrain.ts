@@ -4,6 +4,8 @@ import { profile } from "./profiler/Profiler";
 import { Harvester } from "roles/harvester";
 import { Upgrader } from "roles/upgrader";
 import { Builder } from "roles/builder";
+import { Transport } from "roles/transport";
+import { Filler } from "roles/filler";
 
 @profile
 export class BigBrain implements IBigBrain {
@@ -52,6 +54,17 @@ export class BigBrain implements IBigBrain {
       Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,CARRY,MOVE], newName,
           { memory: { role: 'builder' } });
     }
+
+    if (!this.creepsByRole.transport || this.creepsByRole.transport && this.creepsByRole.transport.length < 2) {
+      const newName = 'Transport' + Game.time;
+      Game.spawns['Spawn1'].spawnCreep([CARRY,CARRY,MOVE,MOVE], newName,
+          { memory: { role: 'transport' } });
+    }
+    if (Game.spawns['Spawn1'].room.storage && !this.creepsByRole.filler || this.creepsByRole.filler && this.creepsByRole.filler.length < 2) {
+      const newName = 'Transport' + Game.time;
+      Game.spawns['Spawn1'].spawnCreep([CARRY,CARRY,MOVE,MOVE], newName,
+          { memory: { role: 'filler' } });
+    }
   }
 
   public refresh(): void {
@@ -71,6 +84,13 @@ export class BigBrain implements IBigBrain {
 
     if(this.creepsByRole && this.creepsByRole.builder && this.creepsByRole.builder.length > 0) {
       _.forEach(this.creepsByRole.builder, creep => Builder.run(creep, this.constructionSites))
+    }
+
+    if(this.creepsByRole && this.creepsByRole.transport && this.creepsByRole.transport.length > 0){
+      this.creepsByRole.transport.forEach((creep) => Transport.run(creep));
+    }
+    if(this.creepsByRole && this.creepsByRole.filler && this.creepsByRole.filler.length > 0){
+      this.creepsByRole.filler.forEach((creep) => Filler.run(creep));
     }
   }
 

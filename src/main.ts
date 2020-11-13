@@ -12,6 +12,7 @@ import { ErrorMapper } from "utils/ErrorMapper";
 import { Mem } from "./memory/memory";
 import profiler from "screeps-profiler";
 import { init } from "profiler/Profiler";
+import stats from './stats/stats.js';
 
 global.Profiler = Profiler.init();
 // When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
@@ -34,6 +35,7 @@ const main = (): void => {
   }
   BigBrain.init();
   BigBrain.run();
+  stats();
 };
 
 export const loop = ErrorMapper.wrapLoop(() => {

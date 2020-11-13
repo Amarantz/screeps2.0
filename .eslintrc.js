@@ -103,6 +103,8 @@ module.exports = {
     radix: "error",
     "sort-imports": "warn",
     "spaced-comment": "error",
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "react/sort-comp": "off",
+
   }
 };
