@@ -3,7 +3,7 @@ import SETTINGS from "./settings";
 import { profile } from "./profiler/Profiler";
 import { Harvester } from "roles/harvester";
 import { Upgrader } from "roles/upgrader";
-import { Builder } from "roles/builder";
+import { Worker } from "roles/worker";
 import { Transport } from "roles/transport";
 import { Filler } from "roles/filler";
 
@@ -83,7 +83,7 @@ export class BigBrain implements IBigBrain {
     }
 
     if(this.creepsByRole && this.creepsByRole.builder && this.creepsByRole.builder.length > 0) {
-      _.forEach(this.creepsByRole.builder, creep => Builder.run(creep, this.constructionSites))
+      _.forEach(this.creepsByRole.builder, creep => Worker.run(creep, this.constructionSites))
     }
 
     if(this.creepsByRole && this.creepsByRole.transport && this.creepsByRole.transport.length > 0){
