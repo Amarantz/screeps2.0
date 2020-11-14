@@ -6,6 +6,7 @@ import { Upgrader } from "roles/upgrader";
 import { Worker } from "roles/worker";
 import { Transport } from "roles/transport";
 import { Filler } from "roles/filler";
+import { roles, setups } from "creepSetup/setup"
 
 @profile
 export class BigBrain implements IBigBrain {
@@ -37,33 +38,35 @@ export class BigBrain implements IBigBrain {
   }
 
   public init(): void {
+    const spawn = Game.spawns['Spawn1'];
     if (!this.creepsByRole.harvester || this.creepsByRole.harvester && this.creepsByRole.harvester.length < 2) {
       const newName = 'Harvester' + Game.time;
-      Game.spawns['Spawn1'].spawnCreep([WORK,WORK,MOVE], newName,
-          { memory: { role: 'harvester' } });
+      spawn.spawnCreep(setups.worker.miner.bootstrap.generateBody(spawn.room.energyCapacityAvailable), newName,
+          { memory: { role: roles.harvester } });
     }
 
     if (!this.creepsByRole.upgrader || this.creepsByRole.upgrader && this.creepsByRole.upgrader.length < 2) {
       const newName = 'Upgrader' + Game.time;
-      Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,CARRY,MOVE], newName,
-          { memory: { role: 'upgrader' } });
+      spawn.spawnCreep(setups.upgrader.default.generateBody(spawn.room.energyCapacityAvailable), newName,
+          { memory: { role: roles.upgrader } });
     }
 
     if (!this.creepsByRole.builder && Object.keys(this.constructionSites).length > 0 || this.creepsByRole.builder && this.creepsByRole.builder.length < 1) {
       const newName = 'Builder' + Game.time;
-      Game.spawns['Spawn1'].spawnCreep([WORK,CARRY,CARRY,MOVE], newName,
+      spawn.spawnCreep(setups.builder.default.generateBody(spawn.room.energyCapacityAvailable), newName,
           { memory: { role: 'builder' } });
     }
 
     if (!this.creepsByRole.transport || this.creepsByRole.transport && this.creepsByRole.transport.length < 2) {
       const newName = 'Transport' + Game.time;
-      Game.spawns['Spawn1'].spawnCreep([CARRY,CARRY,MOVE,MOVE], newName,
-          { memory: { role: 'transport' } });
+      spawn.spawnCreep(setups.transport.default.generateBody(spawn.room.energyCapacityAvailable), newName,
+          { memory: { role: roles.transport } });
     }
-    if (Game.spawns['Spawn1'].room.storage && !this.creepsByRole.filler || this.creepsByRole.filler && this.creepsByRole.filler.length < 2) {
-      const newName = 'Transport' + Game.time;
-      Game.spawns['Spawn1'].spawnCreep([CARRY,CARRY,MOVE,MOVE], newName,
-          { memory: { role: 'filler' } });
+
+    if (spawn.room.storage && !this.creepsByRole.filler || this.creepsByRole.filler && this.creepsByRole.filler.length < 2) {
+      const newName = 'Filller' + Game.time;
+      spawn.spawnCreep(setups.filler.default.generateBody(spawn.room.energyCapacityAvailable), newName,
+          { memory: { role: roles.filler } });
     }
   }
 
@@ -89,9 +92,16 @@ export class BigBrain implements IBigBrain {
     if(this.creepsByRole && this.creepsByRole.transport && this.creepsByRole.transport.length > 0){
       this.creepsByRole.transport.forEach((creep) => Transport.run(creep));
     }
+
     if(this.creepsByRole && this.creepsByRole.filler && this.creepsByRole.filler.length > 0){
       this.creepsByRole.filler.forEach((creep) => Filler.run(creep));
     }
+
+    _.forEach(Game.rooms, (room) => {
+      const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
+      const towers = room.find(FIND_MY_STRUCTURES, { filter: (s) => s.structureType === 'tower'});
+      _.forEach(towers, (tower: StructureTower) => tower.attack(hostileCreeps[0]));
+    })
   }
 
   private findConstructionSites() {
