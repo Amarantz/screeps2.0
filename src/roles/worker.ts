@@ -16,6 +16,10 @@ export class Worker {
         } else {
             if(constructionSites && creep.build(constructionSites[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(constructionSites[0]);
+            } else {
+                if(creep.room.controller && creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE){
+                    creep.moveTo(creep.room.controller);
+                }
             }
         }
     }
