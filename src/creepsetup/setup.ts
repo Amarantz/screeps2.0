@@ -21,21 +21,25 @@ export const setups = {
     filler: {
         default: new CreepSetup(roles.filler, {
             pattern: [CARRY,CARRY,MOVE,MOVE],
+            sizeLimit: 3,
         })
     },
     builder: {
         default: new CreepSetup(roles.builder, {
             pattern: [WORK,WORK,CARRY,MOVE],
+            sizeLimit: 3,
         })
     },
     upgrader: {
         default: new CreepSetup(roles.upgrader, {
             pattern: [WORK,CARRY,CARRY,MOVE],
+            sizeLimit: 3,
         })
     },
     transport: {
         default: new CreepSetup(roles.transport, {
             pattern: [CARRY,CARRY,MOVE],
+            sizeLimit: 3,
         })
     }
 }
