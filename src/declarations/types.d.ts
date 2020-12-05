@@ -8,27 +8,53 @@ declare namespace NodeJS {
     BigBrain: IBigBrain;
     _cache: IGlobalCache;
     gc(quick?: boolean): void;
+    print(...args: any[]): string;
+    derefRoomPosition(protoPos: ProtoPos): RoomPosition;
+    deref(ref: string): RoomObject | null;
     [anyProper: string]: any;
   }
 }
 
+declare function print(...args: any[]): void;
+
 interface IBigBrainMemory {}
 
 interface IBigBrain {
+  CEO: ICEO;
+  directive: any;
   expiration: number;
   shouldBuild: boolean;
   cache: ICache;
   units: { [creepName: string]: any };
-  pods: { [roomName: string]: any };
-  podsMap: { [roomName: string]: any };
+  brains: { [roomName: string]: any };
+  brainsMaps: { [roomName: string]: any };
   memory: IBigBrainMemory;
+  errors: Error[];
   build(): void;
   init(): void;
   refresh(): void;
   run(): void;
   postRun(): void;
 }
+interface INotifier {
+  alert(message: string, roomName: string, priority?: number): void;
+  generateNotificationsList(links: boolean): string[];
+}
+interface ICEO {
+  notifier: INotifier;
+  registerDirective(directive: any): any;
+  removeDirective(directive: any): any;
+  registerManager(manager: any): any;
+  getManagersForBase(base: any): any[];
+  isManagerSuspended(manager: any): boolean;
+  suspendManagerFor(manager: any): void;
+  suspendManagerUntil(manager: any): void;
+  refresh(): void;
+  init(): void;
+  run(): void;
+  getCreepReport(brain: any): string[][];
 
+}
 interface IGlobalCache {
   accessed: { [key: string]: number };
   expiration: { [key: string]: number };

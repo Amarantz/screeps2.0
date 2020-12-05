@@ -35,8 +35,6 @@ export class CreepSetup {
         let patternCost, patternLength, numRepeat: number;
         const { prefix = [], suffix = [], pattern = [], sizeLimit, proportionalPrefixSuffix, ordered = true } = this.bodySetup;
         let body: BodyPartConstant[] = [];
-        console.log(prefix, suffix, pattern)
-        console.log(prefix.length, suffix.length, pattern.length);
 
         if (proportionalPrefixSuffix) {
             patternCost = bodyCost(prefix) + bodyCost(pattern) + bodyCost(suffix);

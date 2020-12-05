@@ -6,6 +6,7 @@ import "./prototypes/RoomObjects";
 import "./prototypes/RoomPosition";
 import "./prototypes/RoomStructures";
 import "./prototypes/Structures";
+import "./globals";
 import * as Profiler from "profiler/Profiler";
 import { BigBrain as _BigBrain } from "BigBrain";
 import { ErrorMapper } from "utils/ErrorMapper";
@@ -15,8 +16,6 @@ import { init } from "profiler/Profiler";
 import stats from './stats/stats.js';
 
 global.Profiler = Profiler.init();
-// When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
-// This utility uses source maps to get the line numbers and file names of the original, TS source code
 const onGlobalReset = () => {
   Mem.format();
   global.BigBrain = new _BigBrain();
@@ -35,6 +34,7 @@ const main = (): void => {
   }
   BigBrain.init();
   BigBrain.run();
+  JSON.stringify(BigBrain.brains);
   stats();
 };
 

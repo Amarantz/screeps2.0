@@ -148,8 +148,8 @@ export class Mem {
       Memory.constructionSites = {};
     }
 
-    if (!Memory.pods) {
-      Memory.pods = {};
+    if (!Memory.brains) {
+      Memory.brains = {};
     }
 
     if (!Memory.BigBrain) {

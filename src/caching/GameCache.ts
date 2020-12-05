@@ -12,7 +12,7 @@ export class GameCache implements ICache {
   }
 
   private cacheCreepsByPod(): void {
-    this.creepsByPod = _.groupBy(Game.creeps, creep => creep.memory[_MEM.POD]) as { [podName: string]: Creep[] };
+    this.creepsByPod = _.groupBy(Game.creeps, creep => creep.memory[_MEM.BRAIN]) as { [podName: string]: Creep[] };
   }
   public build(): void {
     this.cacheCreepsByPod();

@@ -19,7 +19,7 @@ Object.defineProperty(Room.prototype, "my", {
 
 Object.defineProperty(Room.prototype, "isOutpost", {
   get() {
-    return BigBrain.podsMap[this.name] !== undefined;
+    return BigBrain.brainsMaps[this.name] !== undefined;
   },
   configurable: true
 });

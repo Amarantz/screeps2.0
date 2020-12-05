@@ -2,7 +2,7 @@
 declare const enum _MEM {
   TICK = "T",
   EXPIRATION = "X",
-  POD = "P",
+  BRAIN = "B",
   DISTANCE = "D"
 }
 
@@ -11,7 +11,7 @@ declare const enum _RM {
   SOURCES = "s",
   CONTROLLER = "c",
   MINERAL = "m",
-  SKLAIRS = "k",
+  SK_LAIRS = "k",
   EXPANSION_DATA = "e",
   INVASION_DATA = "i",
   HARVEST = "h",
@@ -30,8 +30,17 @@ interface CreepMemory {
   role: string;
   room?: string;
   working?: boolean;
-  [_MEM.POD]?: string;
+  [_MEM.BRAIN]?: string;
   sourceId?: any;
+}
+
+interface FlagMemory {
+  [_MEM.TICK]?: number;
+  [_MEM.EXPIRATION]?: number;
+  [_MEM.BRAIN]: string;
+  suspendUntil?: number;
+  setPosition?: ProtoPos;
+  waypoints?: string[];
 }
 
 interface Memory {
