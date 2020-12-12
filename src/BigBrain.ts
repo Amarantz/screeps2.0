@@ -20,6 +20,7 @@ export class BigBrain implements IBigBrain {
   public units: { [creepName: string]: any };
   public brainsMaps: { [roomName: string]: any };
   public memory: IBigBrainMemory;
+  managers: { [managerName:string]: any};
   public creepsByRole: { [roleName: string]: Creep[] };
   public directives: { [flagName: string]: Directive };
   public CEO: ICEO;
@@ -33,6 +34,7 @@ export class BigBrain implements IBigBrain {
     this.cache = new GameCache();
     this.CEO = new CEO();
     this.brains = {};
+    this.managers = {};
     this.brainsMaps = {};
     this.errors = [];
     this.directives = {};
@@ -50,17 +52,19 @@ export class BigBrain implements IBigBrain {
       });
       // console.log('build', JSON.stringify(this.brains));
     } catch (e) {
-      console.log(e, e.message);
+      console.log(e.name);
+      console.log(e.stack);
     }
   }
 
   public postRun(): void {
     // todo
-    _.forEach(this.errors, error => console.log(error.message))
+    _.forEach(this.errors, error => console.log(error.name))
   }
 
   public init(): void {
     this.CEO.init();
+    this.errors = [];
     const spawn = Game.spawns['Spawn1'];
     if (!this.creepsByRole.harvester || this.creepsByRole.harvester && this.creepsByRole.harvester.length < 2) {
       const newName = 'Harvester' + Game.time;

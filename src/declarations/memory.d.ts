@@ -27,6 +27,7 @@ interface RawMemory {
 }
 // memory extension samples
 interface CreepMemory {
+  task?: any;
   role: string;
   room?: string;
   working?: boolean;

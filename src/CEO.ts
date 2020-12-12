@@ -4,6 +4,8 @@ import { Notifier } from "directives/Notifier";
 import { Directive } from "directives/directive";
 import { Mem } from "memory/memory";
 import { Brain } from "Brian";
+import { Manager } from "managers/Manager";
+import { USE_TRY_CATCH } from "settings";
 
 interface CEOMemory {
     suspendUntil: { [managerRef: string]: number };
@@ -16,10 +18,10 @@ const defaultCEOMemory: CEOMemory = {
 @profile
 export class CEO implements ICEO {
     private memory: CEOMemory;
-    private managers: any[];
-    private managersByBrain: { [brainName: string]: any[]}
+    private managers: Manager[];
+    private managersByBrain: { [brainName: string]: Manager[]}
     private sorted: boolean;
-    notifier: any;
+    notifier: Notifier;
     static settings = {
         outpostCheckFrequency: onPublicServer() ? 250 : 100,
     }
@@ -51,34 +53,94 @@ export class CEO implements ICEO {
     removeDirective(directive: Directive): void {
         this.directives = this.directives.reduce((acc, dir) => {
             if(dir.name === directive.name) {
+                for(const name in directive.manager) {
+                    this.removeManager(directive.manager[name]);
+                }
                 return acc;
             }
             return [...acc, dir];
         }, [] as Directive[])
     }
-    registerManager(manager: any) {
-        throw new Error("Method not implemented.");
+
+    private removeManager(manager: Manager): void {
+        _.remove(this.managers, m => m.ref == manager.ref);
+        if(this.managersByBrain[manager.brain.name]){
+            _.remove(this.managersByBrain[manager.brain.name], m => m.ref == manager.ref)
+        }
     }
-    getManagersForBase(base: any): any[] {
-        throw new Error("Method not implemented.");
+
+    registerManager(manager: Manager): void {
+        this.managers = [...this.managers, manager]
+        if(!this.managersByBrain[manager.brain.name]) {
+            this.managersByBrain[manager.brain.name] = [];
+        }
+        this.managersByBrain[manager.brain.name].push(manager);
     }
-    isManagerSuspended(manager: any): boolean {
-        throw new Error("Method not implemented.");
+
+    getManagersForBrain(brain: Brain): Manager[] {
+        return this.managersByBrain[brain.name];
     }
-    suspendManagerFor(manager: any): void {
-        throw new Error("Method not implemented.");
+
+    isManagerSuspended(manager: Manager): boolean {
+        if (this.memory.suspendUntil[manager.ref]) {
+            if(Game.time < this.memory.suspendUntil[manager.ref]){
+                return true;
+            } else {
+                delete this.memory.suspendUntil[manager.ref];
+                return false;
+            }
+        }
+        return false;
     }
-    suspendManagerUntil(manager: any): void {
-        throw new Error("Method not implemented.");
+
+    suspendManagerFor(manager: Manager, ticks: number): void {
+        this.memory.suspendUntil[manager.ref] = Game.time + ticks;
+    }
+    suspendManagerUntil(manager: Manager, untilTick: number): void {
+        this.memory.suspendUntil[manager.ref] = untilTick;
     }
     init(): void {
         this.directives.forEach(directive => directive.init());
+        if(!this.sorted){
+            this.managers.sort((a, b) => a.priority - b.priority);
+            for(const name in this.managersByBrain) {
+                this.managersByBrain[name].sort((a,b) => a.priority - b.priority);
+            }
+            this.sorted = true;
+        }
+
+        for(const manager of this.managers) {
+            if(!this.isManagerSuspended(manager)) {
+                manager.preInit();
+                this.try(() => manager.init());
+            }
+        }
     }
     run(): void {
         this.directives.forEach(directive => directive.run());
+        this.managers.forEach(manager => {
+            !this.isManagerSuspended(manager) && this.try(() => manager.run());
+        })
     }
     getCreepReport(brain: any): string[][] {
         throw new Error("Method not implemented.");
+    }
+
+    private try(callback: () => any, identifier?: string): void {
+        if(USE_TRY_CATCH) {
+            try {
+                callback();
+            } catch (e) {
+                if(identifier) {
+                    e.name = `Caught unhandled exception at ${'' + callback} (identifer: ${identifier}): \n ${e.name} \n ${e.stack}`;
+                } else {
+                    e.name = `Caught unhandled exception at ${'' + callback}: \n ${e.name} \n ${e.stack}`;
+                }
+                BigBrain.errors.push(e);
+            }
+        } else {
+            callback();
+        }
     }
 
 }

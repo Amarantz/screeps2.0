@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable no-var */
+
 // example declaration file - remove these and add your own custom typings
 declare namespace NodeJS {
   interface Global {
@@ -29,6 +30,7 @@ interface IBigBrain {
   brains: { [roomName: string]: any };
   brainsMaps: { [roomName: string]: any };
   memory: IBigBrainMemory;
+  managers: { [managerName: string]: any};
   errors: Error[];
   build(): void;
   init(): void;
@@ -42,13 +44,13 @@ interface INotifier {
 }
 interface ICEO {
   notifier: INotifier;
-  registerDirective(directive: any): any;
-  removeDirective(directive: any): any;
-  registerManager(manager: any): any;
-  getManagersForBase(base: any): any[];
-  isManagerSuspended(manager: any): boolean;
-  suspendManagerFor(manager: any): void;
-  suspendManagerUntil(manager: any): void;
+  registerDirective(directive: Directive): void;
+  removeDirective(directive: Directive): void;
+  registerManager(manager: Manger): any;
+  getManagersForBrain(Brain: Brain): Manager[];
+  isManagerSuspended(manager: Manager): boolean;
+  suspendManagerFor(manager: Manger, ticks: number): void;
+  suspendManagerUntil(manager: Manager, untilTicks: number): void;
   refresh(): void;
   init(): void;
   run(): void;
@@ -67,7 +69,8 @@ interface IGlobalCache {
 }
 
 interface ICache {
-  creepsByPod: { [podName: string]: any[] };
+  creepsByBrain: { [brain: string]: Creeps[] };
+  managers: {[manager: string]: { [roleName:string]: string[] }}
   targets: { [ref: string]: string[] };
   outpostFlags: Flag[];
   build(): void;

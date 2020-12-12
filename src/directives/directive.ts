@@ -4,6 +4,7 @@ import { getPosFromString, randomHex, equalXYR } from "utils/utils";
 import { NotifierPriority } from "./Notifier";
 import { Pathing } from "../movement/Pathing";
 import { SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER } from "constants";
+import { Manager } from "managers/Manager";
 
 const DEFAULT_MAX_PATH_LENGTH = 600;
 const DEFAULT_MAX_LINEAR_RANGE = 10;
@@ -27,7 +28,7 @@ export abstract class Directive {
     pos: RoomPosition;
     room: Room | undefined;
     brain: Brain;
-    manager: {};
+    manager: { [manager:string]: Manager };
     constructor(flag: Flag, brainFilter?: (brain: Brain) => boolean) {
         this.memory = flag.memory || {} as FlagMemory;
         if (this.memory.suspendUntil) {

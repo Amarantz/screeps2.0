@@ -6,3 +6,6 @@ export default {
   MY_USERNAME: getUsername(),
   SIGNATURE: "SAD-PANDA-BRAIN"
 };
+
+
+export const USE_TRY_CATCH = true;

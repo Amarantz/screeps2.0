@@ -67,7 +67,7 @@ export class Brain {
     build() {
         this.miningSites = {};
         this.extractionSites = {};
-        this.creeps = BigBrain.cache.creepsByPod[this.name] || [];
+        this.creeps = BigBrain.cache.creepsByBrain[this.name] || [];
         this.creepsByRoles = _.groupBy(this.creeps, creep => creep.memory.role);
         this.controller = this.room.controller!;
         $.set(this, 'spawns', () => _.sortBy(_.filter(this.room.spawns, spawn => spawn.my && spawn.isActive()), spawn => spawn.ref));
@@ -91,7 +91,7 @@ export class Brain {
         this.memory = Mem.wrap(Memory.brains, this.room.name, defaultBrainMemory, true);
 		// Refresh rooms
         this.room = Game.rooms[this.room.name];
-        this.creeps = this.creeps = BigBrain.cache.creepsByPod[this.name] || [];
+        this.creeps = this.creeps = BigBrain.cache.creepsByBrain[this.name] || [];
         this.creepsByRoles = _.groupBy(this.creeps, creep => creep.memory.role);
         $.refresh(this, 'controller', 'spawns', 'storage', 'sources', 'repairables', 'rechargeables');
         $.set(this, 'constructionSites', () => _.flatten(_.map(this.rooms, room => room.constructionSites)), 10);
