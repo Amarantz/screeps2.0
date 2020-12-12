@@ -21,7 +21,7 @@ interface IBigBrainMemory {}
 
 interface IBigBrain {
   CEO: ICEO;
-  directive: any;
+  directives: { [flagName: string]: any };
   expiration: number;
   shouldBuild: boolean;
   cache: ICache;

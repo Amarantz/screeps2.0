@@ -37,7 +37,10 @@ interface CreepMemory {
 interface FlagMemory {
   [_MEM.TICK]?: number;
   [_MEM.EXPIRATION]?: number;
-  [_MEM.BRAIN]: string;
+  [_MEM.BRAIN]?: string;
+  maxLinearRange?: number;
+  maxPathLength?: number;
+  persistent?: boolean;
   suspendUntil?: number;
   setPosition?: ProtoPos;
   waypoints?: string[];
@@ -100,6 +103,9 @@ interface StatsMemory {
       };
     };
   };
+}
+interface RoomMemory {
+  [_RM.AVOID]: boolean;
 }
 
 interface CachedPath {

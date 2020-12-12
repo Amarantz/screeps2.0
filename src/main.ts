@@ -17,6 +17,7 @@ import stats from './stats/stats.js';
 
 global.Profiler = Profiler.init();
 const onGlobalReset = () => {
+  delete global.BigBrain;
   Mem.format();
   global.BigBrain = new _BigBrain();
 };
@@ -34,8 +35,8 @@ const main = (): void => {
   }
   BigBrain.init();
   BigBrain.run();
-  JSON.stringify(BigBrain.brains);
   stats();
+  BigBrain.postRun();
 };
 
 export const loop = ErrorMapper.wrapLoop(() => {

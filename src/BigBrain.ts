@@ -9,6 +9,7 @@ import { Filler } from "roles/filler";
 import { roles, setups } from "creepSetup/setup"
 import { Brain } from "Brian";
 import { CEO } from "CEO";
+import { Directive } from "directives/directive";
 
 @profile
 export class BigBrain implements IBigBrain {
@@ -20,7 +21,7 @@ export class BigBrain implements IBigBrain {
   public brainsMaps: { [roomName: string]: any };
   public memory: IBigBrainMemory;
   public creepsByRole: { [roleName: string]: Creep[] };
-  public directive: {}
+  public directives: { [flagName: string]: Directive };
   public CEO: ICEO;
   constructionSites: ConstructionSite<BuildableStructureConstant>[];
   errors: Error[];
@@ -34,6 +35,7 @@ export class BigBrain implements IBigBrain {
     this.brains = {};
     this.brainsMaps = {};
     this.errors = [];
+    this.directives = {};
   }
 
   public build(): void {
@@ -46,7 +48,7 @@ export class BigBrain implements IBigBrain {
           this.brains[room.name] = new Brain(room.name);
         }
       });
-      console.log(JSON.stringify(this.brains));
+      // console.log('build', JSON.stringify(this.brains));
     } catch (e) {
       console.log(e, e.message);
     }
@@ -94,7 +96,8 @@ export class BigBrain implements IBigBrain {
   public refresh(): void {
     this.cache.refresh();
     this.creepsByRole = _.groupBy(Game.creeps, creep => creep.memory.role);
-    // this.CEO.refresh();
+    this.CEO.refresh();
+    // console.log('refresh', JSON.stringify(this.brains));
     _.forEach(this.brains, brain => {
       brain.refresh();
     })
@@ -102,6 +105,7 @@ export class BigBrain implements IBigBrain {
   }
 
   public run(): void {
+    this.CEO.run();
     if (this.creepsByRole && this.creepsByRole.upgrader && this.creepsByRole.upgrader.length > 0) {
       _.forEach(this.creepsByRole.harvester, creep => Harvester.run(creep))
     }
