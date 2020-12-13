@@ -59,6 +59,7 @@ interface Memory {
   pathing: PathingMemory;
   settings: {
     signature: string;
+    log: any;
   };
   stats: any;
   constructionSites: { [id: string]: number };

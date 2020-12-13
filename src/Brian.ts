@@ -2,6 +2,9 @@ import { profile } from 'profiler';
 import { Mem } from 'memory/memory';
 import { $ } from 'caching/GlobalCache';
 import { DirectiveHarvest } from 'directives/resource/harvest';
+import { Component } from 'components/Component';
+import { log } from 'console/log';
+import { Spawner } from 'components/spawner';
 
 export enum DEFCON {
     safe,
@@ -13,6 +16,7 @@ export enum DEFCON {
 
 
 export interface BrainMemory{
+    debug?: boolean;
     defcon: {
         level: number,
         tick: number,
@@ -49,9 +53,11 @@ export class Brain {
     destinations: {pos: RoomPosition, order:number}[];
     miningSites: {[flagName: string]: any};
     extractionSites: {[flagName: string]: any};
+    components: Component[];
     drops: {
         [resourceType: string]: Resource[];
     };
+    spawner: Spawner;
 
     constructor(roomName: string) {
         const room = Game.rooms[roomName];
@@ -63,6 +69,16 @@ export class Brain {
         this.memory = Mem.wrap(Memory.brains, this.name, defaultBrainMemory);
         this.build();
     }
+
+    get print(): string {
+        return `<a href="#!/room/${Game.shard.name}/${this.room.name}">[${this.name}]</a>`
+    }
+
+    protected debug(...args: any[]) {
+		if (this.memory.debug) {
+			log.alert(this.print, args);
+		}
+	}
 
     build() {
         this.miningSites = {};
@@ -84,6 +100,7 @@ export class Brain {
         $.set(this, 'constructionSites', () => _.flatten(_.map(this.rooms, room => room.constructionSites)), 10);
         $.set(this, 'tombstones', () => _.flatten(_.map(this.rooms, room => room.tombstones)), 5);
         this.drops = _.merge(_.map(this.rooms, room => room.drops));
+        this.registerComponents();
     }
 
 
@@ -98,5 +115,21 @@ export class Brain {
         $.set(this, 'tombstones', () => _.flatten(_.map(this.rooms, room => room.tombstones)), 5);
         // console.log(JSON.stringify(this.sources));
         this.drops = _.merge(_.map(this.rooms, room => room.drops));
+        this.refreshComponents();
+    }
+
+    private registerComponents() {
+        this.components = [];
+        if(this.spawns[0]){
+            this.spawner = new Spawner(this, this.spawns[0]);
+        }
+
+        this.components.reverse();
+    }
+
+    private refreshComponents() {
+        for(let i of this.components) {
+            i.refresh();
+        }
     }
 }
