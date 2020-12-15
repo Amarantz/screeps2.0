@@ -234,6 +234,15 @@ export function toColumns(obj: { [key: string]: string }, opts = {} as ToColumnO
   return ret;
 }
 
+function componentToHex(n: number): string {
+	const hex = n.toString(16);
+	return hex.length == 1 ? '0' + hex : hex;
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+	return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
 interface ToColumnOpts {
   padChar: string;
   justify: boolean;
@@ -246,4 +255,19 @@ export const rightAngleQuote = '\u00bb';
 export const alignedNewline = '\n' + ' '.repeat('INFO    '.length + Game.time.toString().length + ' '.length);
 export function color(str: string, color: string): string {
 	return `<font color='${color}'>${str}</font>`;
+}
+
+/**
+ * Compute an exponential moving average
+ */
+export function ema(current: number, avg: number | undefined, window: number, zeroThreshold = 1e-9): number {
+	let newAvg = (current + (avg || 0) * (window - 1)) / window;
+	if (zeroThreshold && Math.abs(newAvg) < zeroThreshold) {
+		newAvg = 0;
+	}
+	return newAvg;
+}
+
+export function isAlly(username: string): boolean {
+	return (Memory.settings.allies || []).includes(username);
 }

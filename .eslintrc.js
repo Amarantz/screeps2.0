@@ -105,6 +105,24 @@ module.exports = {
     "spaced-comment": "error",
     "no-underscore-dangle": "off",
     "react/sort-comp": "off",
-
+    "variable-name": [
+      true,
+      "ban-keywords",
+      "check-format",
+      "allow-pascal-case",
+      "allow-leading-underscore"
+    ],
+    "prefer-const": [
+      true,
+      {
+        "destructuring": "all"
+      }
+    ],
+    "quotemark": [
+      true,
+      "single"
+      // I recognize the irony here
+    ],
+    "no-shadowed-variable": false,
   }
 };

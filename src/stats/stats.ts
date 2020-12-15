@@ -1,33 +1,67 @@
-// Call this function at the end of your main loop
+import { profile } from "profiler/Profiler";
+import { memoryUsage } from "process";
+import { Mem } from "memory/memory";
+import { ema } from "utils/utils";
 
-export default function exportStats(): void {
-    // Reset stats object
+export const LOG_STATS_INTERVAL = 8;
 
-    Memory.stats.time = Game.time;
+@profile
+export class Stats {
+  static clean() {
+    if(Game.time % LOG_STATS_INTERVAL == 0) {
+      const protectedKeys = [
+        'persistent',
+      ];
 
-    // Collect room stats
-    for (let roomName in Game.rooms) {
-      let room = Game.rooms[roomName];
-      let isMyRoom = (room.controller ? room.controller.my : false);
-      if (isMyRoom) {
-        let roomStats: any = Memory.stats.rooms[roomName] = {};
-        roomStats.storageEnergy           = (room.storage ? room.storage.store.energy : 0);
-        roomStats.terminalEnergy          = (room.terminal ? room.terminal.store.energy : 0);
-        roomStats.energyAvailable         = room.energyAvailable;
-        roomStats.energyCapacityAvailable = room.energyCapacityAvailable;
-        roomStats.controllerProgress      = room.controller && room.controller.progress;
-        roomStats.controllerProgressTotal = room.controller && room.controller.progressTotal;
-        roomStats.controllerLevel         = room.controller && room.controller.level;
+      for(const key in Memory.stats) {
+        if(!protectedKeys.includes) {
+          delete Memory.stats[key];
+        }
       }
     }
-
-    // Collect GCL stats
-    Memory.stats.gcl.progress      = Game.gcl.progress;
-    Memory.stats.gcl.progressTotal = Game.gcl.progressTotal;
-    Memory.stats.gcl.level         = Game.gcl.level;
-
-    // Collect CPU stats
-    Memory.stats.cpu.bucket        = Game.cpu.bucket;
-    Memory.stats.cpu.limit         = Game.cpu.limit;
-    Memory.stats.cpu.used          = Game.cpu.getUsed();
   }
+
+  static log(key: string, value: number | { [key: string]: number } | undefined, truncateNumbers = true): void {
+		if (Game.time % LOG_STATS_INTERVAL == 0) {
+			if (truncateNumbers && value != undefined) {
+				const decimals = 5;
+				if (typeof value == 'number') {
+					value = value.truncate(decimals);
+				} else {
+					for (const i in value) {
+						value[i] = value[i].truncate(decimals);
+					}
+				}
+			}
+			Mem.setDeep(Memory.stats, key, value);
+		}
+	}
+
+	// static accumulate(key: string, value: number): void {
+	// 	if (!Memory.stats[key]) {
+	// 		Memory.stats[key] = 0;
+	// 	}
+	// 	Memory.stats[key] += value;
+	// }
+
+	static run() {
+		if (Game.time % LOG_STATS_INTERVAL == 0) {
+			// Record IVM heap statistics
+			Memory.stats['cpu.heapStatistics'] = (<any>Game.cpu).getHeapStatistics();
+			// Log GCL
+			this.log('gcl.progress', Game.gcl.progress);
+			this.log('gcl.progressTotal', Game.gcl.progressTotal);
+			this.log('gcl.level', Game.gcl.level);
+			// Log memory usage
+			this.log('memory.used', RawMemory.get().length);
+			// Log CPU
+			this.log('cpu.limit', Game.cpu.limit);
+			this.log('cpu.bucket', Game.cpu.bucket);
+		}
+		const used = Game.cpu.getUsed();
+		this.log('cpu.getUsed', used);
+		Memory.stats.persistent.avgCPU = ema(used, Memory.stats.persistent.avgCPU, 100);
+		Memory.stats.persistent.empireAge = Memory.tick;
+		Memory.stats.persistent.build = Memory.build;
+	}
+}

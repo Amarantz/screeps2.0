@@ -81,6 +81,12 @@ export class CreepSetup {
         return body;
     }
 
+    generateMaxedBody() {
+		// TODO hardcoded for our current cap with extensions missing
+		return this.generateBody(11100);
+	}
+
+
     getBodyPotential(partType: BodyPartConstant, energyCapacity: number ): number {
         let body = this.generateBody(energyCapacity)
         return _.filter(body, (part: BodyPartConstant) => part == partType).length;

@@ -14,6 +14,10 @@ export enum DEFCON {
     bigPlayerInvasion,
 }
 
+export const getAllBrains = () => {
+    return Object.values(BigBrain.brains);
+}
+
 
 export interface BrainMemory{
     debug?: boolean;
@@ -23,11 +27,19 @@ export interface BrainMemory{
     }
 }
 
-const defaultBrainMemory: BrainMemory = {
+const getDefaultBrainMemory = (): BrainMemory => ({
     defcon: {
         level: DEFCON.safe,
         tick: -Infinity
     }
+}
+);
+
+export interface BunkerData {
+	anchor: RoomPosition;
+	topSpawn: StructureSpawn | undefined;
+	coreSpawn: StructureSpawn | undefined;
+	rightSpawn: StructureSpawn | undefined;
 }
 
 @profile
@@ -58,6 +70,9 @@ export class Brain {
         [resourceType: string]: Resource[];
     };
     spawner: Spawner;
+    bunker: BunkerData;
+    roomPlanner: any;
+    level: 1|2|3|4|5|6|7|8;
 
     constructor(roomName: string) {
         const room = Game.rooms[roomName];
@@ -66,7 +81,8 @@ export class Brain {
         this.room = room;
         this.rooms = [this.room];
         this.flags = [];
-        this.memory = Mem.wrap(Memory.brains, this.name, defaultBrainMemory);
+        this.level = 1;
+        this.memory = Mem.wrap(Memory.brains, this.name, getDefaultBrainMemory);
         this.build();
     }
 
@@ -105,7 +121,7 @@ export class Brain {
 
 
     refresh():void {
-        this.memory = Mem.wrap(Memory.brains, this.room.name, defaultBrainMemory, true);
+        this.memory = Mem.wrap(Memory.brains, this.room.name, getDefaultBrainMemory);
 		// Refresh rooms
         this.room = Game.rooms[this.room.name];
         this.creeps = this.creeps = BigBrain.cache.creepsByBrain[this.name] || [];

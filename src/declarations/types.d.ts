@@ -2,8 +2,27 @@
 /* eslint-disable no-var */
 
 // example declaration file - remove these and add your own custom typings
+
+declare const require: (module: string) => any;
+declare var global: any;
+
+declare const MARKET_FEE: 300; // missing in the typed-screeps declarations
+global.MARKET_FEE = MARKET_FEE;
+
+declare const NO_ACTION: 1;
+declare type NO_ACTION = NO_ACTION;
+global.NO_ACTION = NO_ACTION;
+
+type TickPhase = 'assimilating' | 'build' | 'refresh' | 'init' | 'run' | 'postRun';
+declare var PHASE: TickPhase;
+declare var LATEST_BUILD_TICK: number;
+declare var LATEST_GLOBAL_RESET_TICK: number;
+declare var LATEST_GLOBAL_RESET_DATE: Date;
+declare var Profiler: Profiler;
 declare namespace NodeJS {
   interface Global {
+    LATEST_GLOBAL_RESET_TICK: number;
+    LATEST_GLOBAL_RESET_DATE: Date;
     log: any;
     Profiler?: Profiler;
     BigBrain: IBigBrain;
@@ -21,12 +40,13 @@ declare function print(...args: any[]): void;
 interface IBigBrainMemory {}
 
 interface IBigBrain {
-  CEO: ICEO;
+  CEO: ICeo;
   directives: { [flagName: string]: any };
   expiration: number;
   shouldBuild: boolean;
   cache: ICache;
-  units: { [creepName: string]: any };
+  bots: { [creepName: string]: any };
+  powerBots: {[creepName:string ]: any};
   brains: { [roomName: string]: any };
   brainsMaps: { [roomName: string]: any };
   memory: IBigBrainMemory;
@@ -42,15 +62,15 @@ interface INotifier {
   alert(message: string, roomName: string, priority?: number): void;
   generateNotificationsList(links: boolean): string[];
 }
-interface ICEO {
+interface ICeo {
   notifier: INotifier;
   registerDirective(directive: Directive): void;
   removeDirective(directive: Directive): void;
   registerManager(manager: Manger): any;
-  getManagersForBrain(Brain: Brain): Manager[];
-  isManagerSuspended(manager: Manager): boolean;
-  suspendManagerFor(manager: Manger, ticks: number): void;
-  suspendManagerUntil(manager: Manager, untilTicks: number): void;
+  getDirectivesOfType(directiveName: string): any[];
+	getDirectivesInRoom(roomName: string): any[];
+	getDirectivesForBrain(brain: {name: string}): any[];
+  getManagersForBrain(brain: Brain): Manager[];
   refresh(): void;
   init(): void;
   run(): void;
@@ -131,3 +151,10 @@ interface HasRef {
 interface HasID {
   id: string;
 }
+
+type Full<T> = {
+	[P in keyof T]-?: T[P];
+};
+
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+declare var PERMACACHE: { [key: string]: any };

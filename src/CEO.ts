@@ -8,31 +8,34 @@ import { Manager } from "managers/Manager";
 import { USE_TRY_CATCH } from "settings";
 
 interface CEOMemory {
-    suspendUntil: { [managerRef: string]: number };
+    // suspendUntil: { [managerRef: string]: number };
 }
 
-const defaultCEOMemory: CEOMemory = {
-    suspendUntil: {},
-}
+const getDefaultCEOMemory = (): CEOMemory => ({});
 
 @profile
-export class CEO implements ICEO {
+export class CEO implements ICeo {
     private memory: CEOMemory;
     private managers: Manager[];
     private managersByBrain: { [brainName: string]: Manager[]}
-    private sorted: boolean;
     notifier: Notifier;
+    private directives: Directive[];
+    private directivesByType: { [directiveName: string]: Directive[] };
+	private directivesByRoom: { [roomName: string]: Directive[] };
+	private directivesByBrain: { [brainName: string]: Directive[] };
+    private _directiveCached: boolean;
+    private _managersCached: boolean;
     static settings = {
         outpostCheckFrequency: onPublicServer() ? 250 : 100,
     }
-    private directives: Directive[];
 
     constructor() {
-        this.memory = Mem.wrap(Memory, 'CEO', defaultCEOMemory);
+        this.memory = Mem.wrap(Memory, 'CEO', getDefaultCEOMemory);
         this.directives = [];
         this.managers = [];
+        this._directiveCached = false;
         this.managersByBrain = {};
-        this.sorted = false;
+        this._managersCached = false;
         this.notifier = new Notifier();
     }
 
@@ -41,76 +44,84 @@ export class CEO implements ICEO {
     }
 
     refresh() {
-        this.memory = Mem.wrap(Memory, 'CEO', defaultCEOMemory);
+        this.memory = Mem.wrap(Memory, 'CEO', getDefaultCEOMemory);
         this.notifier.clear();
     }
 
     registerDirective(directive: Directive): void {
-        console.log(JSON.stringify(directive));
-        this.directives = [...this.directives, directive];
+        this.directives.push(directive);
+        this._directiveCached = false;
+    }
+
+	getDirectivesOfType(directiveName: string): Directive[] {
+		this.ensureDirectivesCached();
+		return this.directivesByType[directiveName] || [];
+    }
+
+	getDirectivesInRoom(roomName: string): Directive[] {
+		this.ensureDirectivesCached();
+		return this.directivesByRoom[roomName] || [];
+    }
+
+	getDirectivesForBrain(brain: Brain): Directive[] {
+		this.ensureDirectivesCached();
+		return this.directivesByBrain[Brain.name] || [];
     }
 
     removeDirective(directive: Directive): void {
         this.directives = this.directives.reduce((acc, dir) => {
             if(dir.name === directive.name) {
-                for(const name in directive.manager) {
-                    this.removeManager(directive.manager[name]);
+                for(const name in directive.managers) {
+                    this.removeManager(directive.managers[name]);
                 }
                 return acc;
             }
             return [...acc, dir];
         }, [] as Directive[])
+        this._directiveCached = false;
     }
+
+    private ensureDirectivesCached(): void {
+		if (!this._directiveCached) {
+			this.directivesByType = _.groupBy(this.directives, directive => directive.directiveName);
+			this.directivesByRoom = _.groupBy(this.directives, directive => directive.pos.roomName);
+			this.directivesByBrain = _.groupBy(this.directives, directive => directive.brain.name || 'none');
+			this._directiveCached = true;
+		}
+	}
 
     private removeManager(manager: Manager): void {
         _.remove(this.managers, m => m.ref == manager.ref);
-        if(this.managersByBrain[manager.brain.name]){
-            _.remove(this.managersByBrain[manager.brain.name], m => m.ref == manager.ref)
-        }
+        this._managersCached = false;
     }
 
     registerManager(manager: Manager): void {
-        this.managers = [...this.managers, manager]
-        if(!this.managersByBrain[manager.brain.name]) {
-            this.managersByBrain[manager.brain.name] = [];
-        }
-        this.managersByBrain[manager.brain.name].push(manager);
+        this.managers.push(manager);
+        this._managersCached = false;
     }
 
     getManagersForBrain(brain: Brain): Manager[] {
-        return this.managersByBrain[brain.name];
+        return this.managersByBrain[brain.name] || [];
     }
 
-    isManagerSuspended(manager: Manager): boolean {
-        if (this.memory.suspendUntil[manager.ref]) {
-            if(Game.time < this.memory.suspendUntil[manager.ref]){
-                return true;
-            } else {
-                delete this.memory.suspendUntil[manager.ref];
-                return false;
-            }
-        }
-        return false;
-    }
+    private ensureOverlordsCached(): void {
+		if (!this._managersCached) {
+			this.managers.sort((o1, o2) => o1.priority - o2.priority);
+			this.managersByBrain = _.groupBy(this.managers, manager => manager.brain.name);
+			for (const brainName in this.managersByBrain) {
+				this.managersByBrain[brainName].sort((o1, o2) => o1.priority - o2.priority);
+			}
+			this._managersCached = true;
+		}
+	}
 
-    suspendManagerFor(manager: Manager, ticks: number): void {
-        this.memory.suspendUntil[manager.ref] = Game.time + ticks;
-    }
-    suspendManagerUntil(manager: Manager, untilTick: number): void {
-        this.memory.suspendUntil[manager.ref] = untilTick;
-    }
     init(): void {
-        this.directives.forEach(directive => directive.init());
-        if(!this.sorted){
-            this.managers.sort((a, b) => a.priority - b.priority);
-            for(const name in this.managersByBrain) {
-                this.managersByBrain[name].sort((a,b) => a.priority - b.priority);
-            }
-            this.sorted = true;
-        }
+		this.ensureDirectivesCached();
+        this.ensureOverlordsCached();
 
+        this.directives.forEach((directive) => directive.init());
         for(const manager of this.managers) {
-            if(!this.isManagerSuspended(manager)) {
+            if(!manager.isSuspended) {
                 manager.preInit();
                 this.try(() => manager.init());
             }
@@ -119,7 +130,7 @@ export class CEO implements ICEO {
     run(): void {
         this.directives.forEach(directive => directive.run());
         this.managers.forEach(manager => {
-            !this.isManagerSuspended(manager) && this.try(() => manager.run());
+            !manager.isSuspended && this.try(() => manager.run());
         })
     }
     getCreepReport(brain: any): string[][] {

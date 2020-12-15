@@ -14,12 +14,12 @@ export class GameCache implements ICache {
   }
 
   private cacheCreepsByBrain(): void {
-    this.creepsByBrain = _.groupBy(Game.creeps, creep => creep.memory[_MEM.BRAIN]) as { [brainName: string]: Creep[] };
+    this.creepsByBrain = _.groupBy(Game.creeps, creep => creep.memory[MEM.BRAIN]) as { [brainName: string]: Creep[] };
   }
 
   private cacheManagers(): void {
     this.managers = {};
-    const creepNamesByManager = _.groupBy(Object.keys(Game.creeps), creep => Game.creeps[creep].memory[_MEM.BRAIN]);
+    const creepNamesByManager = _.groupBy(Object.keys(Game.creeps), creep => Game.creeps[creep].memory[MEM.BRAIN]);
     for (const ref in creepNamesByManager) {
       this.managers[ref] = _.groupBy(creepNamesByManager[ref], name => Game.creeps[name].memory.role);
     }
