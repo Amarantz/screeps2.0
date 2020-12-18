@@ -7,6 +7,7 @@ export default {
   SIGNATURE: "SAD-PANDA-BRAIN"
 };
 
-export const USE_SCREEPS_PROFILER = true;
+export const SUPPRESS_INVALID_DIRECTIVE_ALERTS: boolean = false;
+export const USE_SCREEPS_PROFILER = false;
 export const PROFILER_COLONY_LIMIT = 10;
 export const USE_TRY_CATCH = true;

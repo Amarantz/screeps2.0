@@ -6,6 +6,11 @@
 declare const require: (module: string) => any;
 declare var global: any;
 
+interface Game {
+	_allRooms?: Room[];
+	_ownedRooms?: Room[];
+}
+
 declare const MARKET_FEE: 300; // missing in the typed-screeps declarations
 global.MARKET_FEE = MARKET_FEE;
 
@@ -48,7 +53,7 @@ interface IBigBrain {
   bots: { [creepName: string]: any };
   powerBots: {[creepName:string ]: any};
   brains: { [roomName: string]: any };
-  brainsMaps: { [roomName: string]: any };
+  brainsMaps: { [roomName: string]: string };
   memory: IBigBrainMemory;
   managers: { [managerName: string]: any};
   errors: Error[];

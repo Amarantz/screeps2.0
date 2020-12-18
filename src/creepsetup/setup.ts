@@ -1,6 +1,7 @@
 import { CreepSetup } from "./CreepSetup"
 
 export const Roles = {
+	botHarvester: 'botHarvester',
     harvester: 'harvester',
     worker: 'worker',
     scout: 'scout',
@@ -14,41 +15,45 @@ export const Roles = {
 
 export const Setups = {
     worker: {
-        extractor: new CreepSetup(Roles.harvester, {
+        extractor: new CreepSetup(Roles.botHarvester, {
 			pattern  : [WORK, WORK, MOVE],
 			sizeLimit: Infinity,
 			prefix   : [CARRY, CARRY]
 		}),
         miner: {
-            bootstrap: new CreepSetup(Roles.harvester, {
+            bootstrap: new CreepSetup(Roles.botHarvester, {
                 pattern: [WORK, WORK, MOVE],
-                sizeLimit: 3,
-            }),
-            default: new CreepSetup(Roles.harvester, {
+                sizeLimit: 1,
+			}),
+			// default: new CreepSetup(Roles.Harvester, {
+			// 	pattern  : [WORK, WORK, CARRY, MOVE],
+			// 	sizeLimit: 3,
+            // }),
+            default: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, CARRY, MOVE],
 				sizeLimit: 3,
             }),
-            standard: new CreepSetup(Roles.harvester, {
+            standard: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, WORK],
 				sizeLimit: 1,
 			}),
-            standardCPU: new CreepSetup(Roles.harvester, {
+            standardCPU: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, WORK],
 				sizeLimit: 1,
             }),
-            linkOptimized: new CreepSetup(Roles.harvester, {
+            linkOptimized: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, WORK, CARRY, MOVE, MOVE, WORK],
 				sizeLimit: 4,
             }),
-            emergency: new CreepSetup(Roles.harvester, {
+            emergency: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, CARRY, MOVE],
 				sizeLimit: 1,
             }),
-            double: new CreepSetup(Roles.harvester, {
+            double: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
 				sizeLimit: 2,
             }),
-            sourceKeeper: new CreepSetup(Roles.harvester, {
+            sourceKeeper: new CreepSetup(Roles.botHarvester, {
 				pattern  : [WORK, WORK, CARRY, MOVE],
 				sizeLimit: 5,
 			})
@@ -57,7 +62,7 @@ export const Setups = {
     filler: {
         default: new CreepSetup(Roles.filler, {
             pattern: [CARRY,CARRY,MOVE,MOVE],
-            sizeLimit: 3,
+            sizeLimit: 1,
         })
     },
     claimer: {
@@ -101,7 +106,7 @@ export const Setups = {
     upgrader: {
 		default: new CreepSetup(Roles.upgrader, {
 			pattern  : [WORK, WORK, WORK, CARRY, MOVE],
-			sizeLimit: Infinity,
+			sizeLimit: 1,
 		}),
 
 		rcl8: new CreepSetup(Roles.upgrader, {
@@ -125,7 +130,7 @@ export const Setups = {
     transport: {
         default: new CreepSetup(Roles.transport, {
             pattern: [CARRY,CARRY,MOVE],
-            sizeLimit: Infinity,
+            sizeLimit: 1,
         }),
         early: new CreepSetup(Roles.transport, {
 			pattern  : [CARRY, MOVE],
@@ -137,10 +142,9 @@ export const Setups = {
 		sizeLimit: 1,
     }),
     managers: {
-
 		default: new CreepSetup(Roles.manager, {
 			pattern  : [CARRY, CARRY, MOVE],
-			sizeLimit: Infinity,
+			sizeLimit: 1,
 		}),
 
 		early: new CreepSetup(Roles.manager, {

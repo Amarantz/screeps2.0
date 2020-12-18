@@ -135,6 +135,11 @@ interface RoomObject {
   serialize(): ProtoRoomObject;
 }
 
+
+interface StoreBase {
+	contents: [ResourceConstant, number][];
+}
+
 interface RoomPosition {
   print: string;
 	printPlain: string;

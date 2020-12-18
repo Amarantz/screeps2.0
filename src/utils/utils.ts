@@ -185,17 +185,17 @@ export function rotatedMatrix<T>(matrix: T[][], clockwiseTurns: 0 | 1 | 2 | 3): 
  * Merges a list of store-like objects, summing overlapping keys. Useful for calculating assets from multiple sources
  */
 export function mergeSum(objects: { [key: string]: number | undefined }[]): { [key: string]: number } {
-  const ret: { [key: string]: number } = {};
-  for (const object of objects) {
-    for (const key in object) {
-      const amount = object[key] || 0;
-      if (!ret[key]) {
-        ret[key] = 0;
-      }
-      ret[key] += amount;
-    }
-  }
-  return ret;
+	const ret: { [key: string]: number } = {};
+	for (const object of objects) {
+		for (const key in object) {
+			const amount = object[key] || 0;
+			if (!ret[key]) {
+				ret[key] = 0;
+			}
+			ret[key] += amount;
+		}
+	}
+	return ret;
 }
 
 export function bulleted(text: string[], aligned = true, startWithNewLine = true): string {
@@ -270,4 +270,27 @@ export function ema(current: number, avg: number | undefined, window: number, ze
 
 export function isAlly(username: string): boolean {
 	return (Memory.settings.allies || []).includes(username);
+}
+
+export function getAllRooms(): Room[] {
+	if (!Game._allRooms) {
+		Game._allRooms = _.values(Game.rooms); // this is cleared every tick
+	}
+	return Game._allRooms;
+}
+
+export function getOwnedRooms(): Room[] {
+	if (!Game._ownedRooms) {
+		Game._ownedRooms = _.filter(getAllRooms(), room => room.my); // this is cleared every tick
+	}
+	return Game._ownedRooms;
+}
+
+export function canClaimAnotherRoom(): boolean {
+	return getOwnedRooms().length < Game.gcl.level;
+}
+
+
+export function hasJustSpawned(): boolean {
+	return _.keys(BigBrain.brains).length == 1 && _.keys(Game.creeps).length == 0 && _.keys(Game.spawns).length == 1;
 }

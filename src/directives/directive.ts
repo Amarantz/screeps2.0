@@ -296,29 +296,6 @@ export abstract class Directive {
         return undefined;
     }
 
-    private findNearestBrain(brainFilter?: (brain: Brain) => boolean, verbose: boolean = false): Brain | undefined {
-        const maxPathLength = this.memory.maxPathLength || DEFAULT_MAX_PATH_LENGTH;
-        const maxLinearRange = this.memory.maxLinearRange || DEFAULT_MAX_LINEAR_RANGE;
-        if (verbose) console.log(`Recalculating brain associated for ${this.name} in ${this.pos.roomName}`);
-        let nearestBrain: Brain | undefined = undefined;
-        const BrainRooms = Object.keys(Game.rooms).reduce((acc, roomName) => {
-            if (Game.rooms[roomName].my) {
-                return [...acc, Game.rooms[roomName]]
-            }
-            return acc;
-        }, [] as Room[])
-        Object.values(BigBrain.brains).forEach((brain: Brain) => {
-            if (Game.map.getRoomLinearDistance(this.pos.roomName, brain.name) > maxLinearRange) {
-                return;
-            }
-        });
-
-        if (nearestBrain) {
-            return nearestBrain;
-        }
-        return;
-    }
-
     remove(force = false): number | undefined {
         if (!this.memory.persistent || force) {
             delete BigBrain.directives[this.name];
@@ -362,78 +339,78 @@ export abstract class Directive {
 	/**
 	 * Returns whether a directive of this type is present either at this position or within the room of this name
 	 */
-	static isPresent(posOrRoomName: string | RoomPosition): boolean {
-		if (PHASE != 'run' && PHASE != 'init') {
-			log.error(`Directive.isPresent() will only give correct results in init() and run() phases!`);
-			return true; // usually we want to do something if directive isn't present; so this minimizes bad results
-		}
-		if (typeof posOrRoomName === 'string') {
-			const roomName = posOrRoomName as string;
-			const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(roomName) as Directive[];
-			return _.filter(directivesInRoom, directive => this.filter(directive.flag)).length > 0;
-		} else {
-			const pos = posOrRoomName as RoomPosition;
-			const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(pos.roomName) as Directive[];
-			return _.filter(directivesInRoom,
-							directive => this.filter(directive.flag) && equalXYR(pos, directive.pos)).length > 0;
-		}
-	}
+    static isPresent(posOrRoomName: string | RoomPosition): boolean {
+        if (PHASE != 'run' && PHASE != 'init') {
+            log.error(`Directive.isPresent() will only give correct results in init() and run() phases!`);
+            return true; // usually we want to do something if directive isn't present; so this minimizes bad results
+        }
+        if (typeof posOrRoomName === 'string') {
+            const roomName = posOrRoomName as string;
+            const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(roomName) as Directive[];
+            return _.filter(directivesInRoom, directive => this.filter(directive.flag)).length > 0;
+        } else {
+            const pos = posOrRoomName as RoomPosition;
+            const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(pos.roomName) as Directive[];
+            return _.filter(directivesInRoom,
+                directive => this.filter(directive.flag) && equalXYR(pos, directive.pos)).length > 0;
+        }
+    }
 
-/**
-	 * Create a directive if one of the same type is not already present (in room | at position).
-	 * Calling this method on positions in invisible rooms can be expensive and should be used sparingly.
-	 */
-	static createIfNotPresent(pos: RoomPosition, scope: 'room' | 'pos',
-							  opts: DirectiveCreationOptions = {}): number | string | undefined {
-		if (PHASE != 'run') {
-			log.error(`Directive.createIfNotPresent() can only be called during the run phase!`);
-			return;
-		}
-		// Do nothing if flag is already here
-		if (scope == 'pos') {
-			if (this.isPresent(pos)) return;
-		} else {
-			if (this.isPresent(pos.roomName)) return;
-		}
+    /**
+         * Create a directive if one of the same type is not already present (in room | at position).
+         * Calling this method on positions in invisible rooms can be expensive and should be used sparingly.
+         */
+    static createIfNotPresent(pos: RoomPosition, scope: 'room' | 'pos',
+        opts: DirectiveCreationOptions = {}): number | string | undefined {
+        if (PHASE != 'run') {
+            log.error(`Directive.createIfNotPresent() can only be called during the run phase!`);
+            return;
+        }
+        // Do nothing if flag is already here
+        if (scope == 'pos') {
+            if (this.isPresent(pos)) return;
+        } else {
+            if (this.isPresent(pos.roomName)) return;
+        }
 
-		const room = Game.rooms[pos.roomName] as Room | undefined;
-		if (!room) {
-			if (!opts.memory) {
-				opts.memory = {};
-			}
-			opts.memory.setPos = pos;
-		}
-		switch (scope) {
-			case 'room':
-				if (room) {
-					return this.create(pos, opts);
-				} else {
-					log.info(`Creating directive at ${pos.print}... ` +
-							 `No visibility in room; directive will be relocated on next tick.`);
-					let createAtPos: RoomPosition;
-					if (opts.memory && opts.memory[MEM.BRAIN]) {
-						createAtPos = Pathing.findPathablePosition(opts.memory[MEM.BRAIN]!);
-					} else {
-						createAtPos = Pathing.findPathablePosition(_.first(getAllBrains()).room.name);
-					}
-					return this.create(createAtPos, opts);
-				}
-			case 'pos':
-				if (room) {
-					return this.create(pos, opts);
-				} else {
-					log.info(`Creating directive at ${pos.print}... ` +
-							 `No visibility in room; directive will be relocated on next tick.`);
-					let createAtPos: RoomPosition;
-					if (opts.memory && opts.memory[MEM.BRAIN]) {
-						createAtPos = Pathing.findPathablePosition(opts.memory[MEM.BRAIN]!);
-					} else {
-						createAtPos = Pathing.findPathablePosition(_.first(getAllBrains()).room.name);
-					}
-					return this.create(createAtPos, opts);
-				}
-		}
-	}
+        const room = Game.rooms[pos.roomName] as Room | undefined;
+        if (!room) {
+            if (!opts.memory) {
+                opts.memory = {};
+            }
+            opts.memory.setPos = pos;
+        }
+        switch (scope) {
+            case 'room':
+                if (room) {
+                    return this.create(pos, opts);
+                } else {
+                    log.info(`Creating directive at ${pos.print}... ` +
+                        `No visibility in room; directive will be relocated on next tick.`);
+                    let createAtPos: RoomPosition;
+                    if (opts.memory && opts.memory[MEM.BRAIN]) {
+                        createAtPos = Pathing.findPathablePosition(opts.memory[MEM.BRAIN]!);
+                    } else {
+                        createAtPos = Pathing.findPathablePosition(_.first(getAllBrains()).room.name);
+                    }
+                    return this.create(createAtPos, opts);
+                }
+            case 'pos':
+                if (room) {
+                    return this.create(pos, opts);
+                } else {
+                    log.info(`Creating directive at ${pos.print}... ` +
+                        `No visibility in room; directive will be relocated on next tick.`);
+                    let createAtPos: RoomPosition;
+                    if (opts.memory && opts.memory[MEM.BRAIN]) {
+                        createAtPos = Pathing.findPathablePosition(opts.memory[MEM.BRAIN]!);
+                    } else {
+                        createAtPos = Pathing.findPathablePosition(_.first(getAllBrains()).room.name);
+                    }
+                    return this.create(createAtPos, opts);
+                }
+        }
+    }
 
     /* Filter for _.filter() that checks if a flag is of the matching type */
     static filter(flag: Flag): boolean {
@@ -446,21 +423,21 @@ export abstract class Directive {
         return _.compact(_.map(flags, flag => BigBrain.directives[flag.name]));
     }
 
-    	/**
-	 * Map a list of flags to directive using the filter of the subclassed directive
-	 */
-	static findInRoom(roomName: string): Directive[] {
-		const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(roomName) as Directive[];
-		return _.filter(directivesInRoom, directive => this.filter(directive.flag));
-	}
+    /**
+ * Map a list of flags to directive using the filter of the subclassed directive
+ */
+    static findInRoom(roomName: string): Directive[] {
+        const directivesInRoom = BigBrain.CEO.getDirectivesInRoom(roomName) as Directive[];
+        return _.filter(directivesInRoom, directive => this.filter(directive.flag));
+    }
 
 	/**
 	 * Map a list of flags to directive using the filter of the subclassed directive
 	 */
-	static findInBrain(brain: Brain): Directive[] {
-		const directivesInBrain = BigBrain.CEO.getDirectivesForBrain(brain) as Directive[];
-		return _.filter(directivesInBrain, directive => this.filter(directive.flag));
-	}
+    static findInBrain(brain: Brain): Directive[] {
+        const directivesInBrain = BigBrain.CEO.getDirectivesForBrain(brain) as Directive[];
+        return _.filter(directivesInBrain, directive => this.filter(directive.flag));
+    }
 
     /**
      * Actions that are performed only once on the tick of the directive creation

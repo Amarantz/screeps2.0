@@ -68,25 +68,28 @@ export class Mem {
 	 * Attempt to load the parsed memory from a previous tick to avoid parsing costs
 	 */
   static load() {
-    if (lastTime && lastMemory && Game.time == lastTime + 1) {
-      delete global.Memory;
-      global.Memory = lastMemory;
-      RawMemory._parsed = lastMemory;
-    } else {
-      // noinspection BadExpressionStatementJS
-      /* tslint:disable:no-unused-expression */
-      Memory.rooms; // forces parsing
-      /* tslint:enable:no-unused-expression */
+		if (lastTime && lastMemory && Game.time == lastTime + 1) {
+			delete global.Memory;
+			global.Memory = lastMemory;
+			RawMemory._parsed = lastMemory;
+		} else {
+			// noinspection BadExpressionStatementJS
+			/* tslint:disable:no-unused-expression */
+			Memory.rooms; // forces parsing
+			/* tslint:enable:no-unused-expression */
       lastMemory = RawMemory._parsed;
-      Memory.stats.persistent.lastMemoryReset = Game.time;
-    }
-    lastTime = Game.time;
-    // Handle global time
-    if (!global.GLOBAL_AGE) {
-      global.GLOBAL_AGE = 0;
-    }
-    global.GLOBAL_AGE++;
-    Memory.stats.persistent.globalAge = global.GLOBAL_AGE;
+      if(!Memory.stats.persistent){
+        Memory.stats.persistent = { lastMemoryReset: 0, globalAge: 0 };
+      }
+			Memory.stats.persistent.lastMemoryReset = Game.time;
+		}
+		lastTime = Game.time;
+		// Handle global time
+		if (!global.GLOBAL_AGE) {
+			global.GLOBAL_AGE = 0;
+		}
+		global.GLOBAL_AGE++;
+		Memory.stats.persistent.globalAge = global.GLOBAL_AGE;
   }
 
   static garbageCollect(quick?: boolean) {

@@ -1,3 +1,6 @@
+import { Brain } from "Brian";
+import { BoostType } from "resources/map_resoures";
+
 export const bodyCost = (bodyparts: BodyPartConstant[]): number => (
     _.sum(bodyparts, part => BODYPART_COST[part])
 );
@@ -15,10 +18,17 @@ export interface BodySetup {
     ordered: boolean;
 }
 
+export interface BodyGeneratorReturn {
+	body: BodyPartConstant[];
+	boosts: ResourceConstant[];
+}
+
 export class CreepSetup {
     bodySetup: any;
     role: string;
-    constructor(role: string, bodySetup = {}){
+    private boosts: BoostType[];
+    private cache: { [colonyName: string]: { result: BodyGeneratorReturn, expiration: number } };
+    constructor(role: string, bodySetup = {}, boosts?: BoostType[]){
         this.role = role;
         _.defaults(bodySetup, {
             pattern: [],
@@ -29,6 +39,8 @@ export class CreepSetup {
             orderer: true,
         });
         this.bodySetup = bodySetup as BodySetup;
+        this.boosts = boosts || [];
+		this.cache = {};
     }
 
     generateBody(availableEnergey: number): BodyPartConstant[] {
@@ -91,4 +103,31 @@ export class CreepSetup {
         let body = this.generateBody(energyCapacity)
         return _.filter(body, (part: BodyPartConstant) => part == partType).length;
     }
+
+    	/**
+	 * Generate the body and best boosts for a requested creep
+	 */
+	create(brain: Brain, useCache = false): BodyGeneratorReturn {
+		// If you're allowed to use a cached result (e.g. for estimating wait times), return that
+		if (useCache && this.cache[brain.name] && Game.time < this.cache[brain.name].expiration) {
+			return this.cache[brain.name].result;
+		}
+
+		// Otherwise recompute
+		const body = this.generateBody(brain.room.energyCapacityAvailable);
+		const bodyCounts = _.countBy(body);
+
+		const boosts: ResourceConstant[] = [];
+
+		const result = {
+			body  : body,
+			boosts: boosts,
+		};
+		this.cache[brain.name] = {
+			result    : result,
+			expiration: Game.time + 20,
+		};
+
+		return result;
+	}
 }

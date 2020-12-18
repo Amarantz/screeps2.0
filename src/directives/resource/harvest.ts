@@ -1,6 +1,11 @@
 import { Directive } from "directives/directive";
+import { MiningManager } from "managers/mining/miner";
 import { Pathing } from "movement/Pathing";
+import { ManagerPriority } from "priorities/priorities_managers";
+import { Cartographer, ROOMTYPE_SOURCEKEEPER } from "utils/Cartographer";
 import { getCacheExpiration, ema } from "utils/utils";
+import { profile } from '../../profiler';
+import { log } from "console/log";
 
 // Because harvest directives are the most common, they have special shortened memory keys to minimize memory impact
 export const enum HARVEST_MEM {
@@ -23,23 +28,26 @@ const defaultDirectiveHarvestMemory: DirectiveHarvestMemory = {
 	[HARVEST_MEM.DOWNTIME]: 0,
 };
 
+@profile
 export class DirectiveHarvest extends Directive {
-    static directiveName = 'harvest';
-    static color = COLOR_YELLOW;
-    static secondaryColor = COLOR_YELLOW;
-    memory: DirectiveHarvestMemory;
-    managers: {
-        mine: any;
-    }
 
-    constructor(flag: Flag){
-        super(flag);
-        if(this.brain){
-            this.brain.miningSites[this.name] = this;
-            this.brain.destinations.push({pos: this.pos, order: this.memory[MEM.TICK] || Game.time});
-        }
-        _.defaultsDeep(this.memory, defaultDirectiveHarvestMemory);
-    }
+	static directiveName = 'harvest';
+	static color = COLOR_YELLOW;
+	static secondaryColor = COLOR_YELLOW;
+
+	memory: DirectiveHarvestMemory;
+	managers: {
+		mine: MiningManager;
+	};
+
+	constructor(flag: Flag) {
+		super(flag);
+		if (this.brain) {
+			this.brain.miningSites[this.name] = this;
+			this.brain.destinations.push({pos: this.pos, order: this.memory[MEM.TICK] || Game.time});
+		}
+		_.defaultsDeep(this.memory, defaultDirectiveHarvestMemory);
+	}
 
 	// Hauling distance
 	get distance(): number {
@@ -53,17 +61,27 @@ export class DirectiveHarvest extends Directive {
 		}
 		return this.memory[HARVEST_MEM.PATHING]![MEM.DISTANCE];
 	}
-    HigherManager(): void {
 
-    }
-    init(): void {
+	HigherManager() {
+		// Create a mining overlord for this
+		let priority = ManagerPriority.ownedRoom.mine;
+		if (!(this.room && this.room.my)) {
+			priority = Cartographer.roomType(this.pos.roomName) == ROOMTYPE_SOURCEKEEPER ?
+					   ManagerPriority.remoteSKRoom.mine : ManagerPriority.remoteRoom.mine;
+		}
+		this.managers.mine = new MiningManager(this, priority);
+		log.debug(`Manager highered: ${this.managers.mine.print}`);
+	}
 
-    }
-    run(): void {
-        this.computeStats();
-    }
+	init() {
 
-    private computeStats() {
+	}
+
+	run() {
+		this.computeStats();
+	}
+
+	private computeStats() {
 		const source = this.managers.mine.source;
 		if (source && source.ticksToRegeneration == 1) {
 			this.memory[HARVEST_MEM.USAGE] = (source.energyCapacity - source.energy) / source.energyCapacity;
@@ -73,4 +91,5 @@ export class DirectiveHarvest extends Directive {
 												  this.memory[HARVEST_MEM.DOWNTIME],
 												  CREEP_LIFE_TIME)).toFixed(5);
 	}
+
 }

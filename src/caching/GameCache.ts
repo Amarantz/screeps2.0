@@ -1,4 +1,5 @@
 import { profile } from "../profiler/Profiler";
+import { DirectiveOutpost } from "directives/colony/outpost";
 
 @profile
 export class GameCache implements ICache {
@@ -10,18 +11,19 @@ export class GameCache implements ICache {
     this.creepsByBrain = {};
     this.managers = {};
     this.targets = {};
-    this.outpostFlags = [] as Flag[];
+    this.outpostFlags = _.filter(Game.flags, flag => DirectiveOutpost.filter(flag));
   }
 
   private cacheCreepsByBrain(): void {
-    this.creepsByBrain = _.groupBy(Game.creeps, creep => creep.memory[MEM.BRAIN]) as { [brainName: string]: Creep[] };
+    this.creepsByBrain = _.groupBy(Game.creeps, creep => creep.memory[MEM.BRAIN]);
   }
 
   private cacheManagers(): void {
     this.managers = {};
-    const creepNamesByManager = _.groupBy(Object.keys(Game.creeps), creep => Game.creeps[creep].memory[MEM.BRAIN]);
+    const creepNamesByManager = _.groupBy(_.keys(Game.creeps), creep => Game.creeps[creep].memory[MEM.MANAGER]);
+    const powerCreepsByManager = _.groupBy(_.keys(Game.powerCreeps), power => Game.powerCreeps[power].memory[MEM.MANAGER])
     for (const ref in creepNamesByManager) {
-      this.managers[ref] = _.groupBy(creepNamesByManager[ref], name => Game.creeps[name].memory.role);
+      this.managers[ref] = _.groupBy([...creepNamesByManager[ref]], name => (Game.creeps[name] || Game.powerCreeps[name]).memory.role);
     }
 
   }

@@ -7,7 +7,7 @@ import { CombatIntel } from "intel/CombatIntel";
 import { Task } from "tasks/Task";
 import { initializeTask } from "tasks/initializer";
 import { BOOST_PARTS } from "resources/map_resoures";
-import { MIN_LIFETIME_FOR_BOOST } from "tasks/instances.getBoosted";
+import { MIN_LIFETIME_FOR_BOOST } from "tasks/instances/getBoosted";
 
 export function normalizeStandardBot(creep: Bot | Creep): Bot | Creep {
     return BigBrain.bots[creep.name] || creep;
@@ -55,9 +55,6 @@ export class Bot extends AnyBot {
     isStandardBot: true;
     creep: Creep; 						// The creep that this wrapper class will control
     body: BodyPartDefinition[];    	 	// These properties are all wrapped from this.creep.* to this.*
-    carry: StoreDefinition;				// |
-    store: StoreDefinition; 			// |
-    carryCapacity: number;				// |
     fatigue: number;					// |
     hits: number;						// |
     hitsMax: number;					// |

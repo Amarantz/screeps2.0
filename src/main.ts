@@ -17,16 +17,16 @@ import { BigBrain as _BigBrain } from "BigBrain";
 import { ErrorMapper } from "utils/ErrorMapper";
 import { Mem } from "./memory/memory";
 import profiler from "screeps-profiler";
-import { init } from "profiler/Profiler";
 import { Stats } from './stats/stats.js';
 import { USE_SCREEPS_PROFILER } from "settings";
 
-global.Profiler = Profiler.init();
 const onGlobalReset = () => {
   global.LATEST_GLOBAL_RESET_TICK = Game.time;
-	global.LATEST_GLOBAL_RESET_DATE = new Date();
+  global.LATEST_GLOBAL_RESET_DATE = new Date();
+  if (USE_SCREEPS_PROFILER) profiler.enable();
   delete global.BigBrain;
   Mem.format();
+  Memory.stats.persistent.lastGlobalReset = Game.time;
   global.BigBrain = new _BigBrain();
 };
 
@@ -37,8 +37,10 @@ const main = (): void => {
   if (!BigBrain || BigBrain.shouldBuild || Game.time >= BigBrain.expiration) {
     PHASE = 'build';
     delete global.BigBrain;
+    Mem.garbageCollect(true);
     global.BigBrain = new _BigBrain();
     BigBrain.build();
+    LATEST_BUILD_TICK = Game.time;
   } else {
     PHASE = 'refresh';
     BigBrain.refresh();

@@ -1,6 +1,7 @@
 import { Task } from "./Task";
 import { log } from "console/log";
-import { TaskInvalid } from "./instances.invalid";
+import { TaskInvalid } from "./instances/invalid";
+import { TaskHarvest, harvestTargetType, harvestTaskName } from "./instances/harvest";
 
 export function initializeTask(protoTask: ProtoTask): Task {
 	// Retrieve name and target data from the ProtoTask
@@ -9,6 +10,8 @@ export function initializeTask(protoTask: ProtoTask): Task {
 	let task: any;
 	// Create a task object of the correct type
     switch (taskName) {
+        case harvestTaskName:
+            task = new TaskHarvest(target as harvestTargetType);
         default:
 			log.error(`Invalid task name: ${taskName}! task.creep: ${protoTask._creep.name}. Deleting from memory!`);
 			task = new TaskInvalid();

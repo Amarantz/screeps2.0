@@ -132,7 +132,7 @@ export abstract class AnyBot {
 		this.actionLog = {};
 		this.blockMovement = false;
 		// Register global references
-		// BigBrain.bot[this.name] = this;
+		// BigBrain.bots[this.name] = this;
 		global[this.name] = this;
 		// Handle attack notification when at lifetime - 1
 		if (!notifyWhenAttacked && (this.ticksToLive || 0) >= this.lifetime - (SETTINGS.BIG_BRAIN_INTERVAL + 1)) {
