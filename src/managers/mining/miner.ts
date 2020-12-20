@@ -6,12 +6,13 @@ import { Manager, ManagerMemory } from "managers/Manager";
 import { DirectiveHarvest } from "directives/resource/harvest";
 import { ManagerPriority } from "priorities/priorities_managers";
 import { getCacheExpiration, maxBy, minBy } from "utils/utils";
-import { Cartographer, ROOMTYPE_SOURCEKEEPER } from "utils/Cartographer";
+import { Cartographer, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CONTROLLER } from "utils/Cartographer";
 import { log } from "console/log";
 import { Pathing } from "movement/Pathing";
 import { DirectiveOutpost } from "directives/colony/outpost";
 import { $ } from '../../caching/GlobalCache';
 import { brainStage } from "Brian";
+import { TaskGetBoosted } from "tasks/instances/getBoosted";
 
 export const StandardMinerSetupCost = bodyCost(Setups.worker.miner.standard.generateBody(Infinity));
 
@@ -57,19 +58,20 @@ export class MiningManager extends Manager {
 	minersNeeded: number;
 	allowDropMining: boolean;
 
+
 	private dismantlePositions: RoomPosition[] | undefined;
 
 	static settings = {
-		minLinkDistance : 10,
+		minLinkDistance: 10,
 		dropMineUntilRCL: 3,
 	};
+	extensions: StructureExtension[];
 
 	constructor(directive: DirectiveHarvest, priority: number) {
 		super(directive, 'mine', priority);
 		this.distance = directive.distance;
 
 		this.priority += this.outpostIndex * ManagerPriority.remoteRoom.roomIncrement;
-		console.log(this.priority);
 		this.miners = this.bots(Roles.harvester);
 
 		// Populate structures
@@ -84,7 +86,7 @@ export class MiningManager extends Manager {
 					this.dismantlePositions = this.getDismantlePositions();
 				} else {
 					this.memory[DISMANTLE_CHECK] = getCacheExpiration(DISMANTLE_CHECK_FREQUENCY,
-																	  DISMANTLE_CHECK_FREQUENCY / 5);
+						DISMANTLE_CHECK_FREQUENCY / 5);
 				}
 			}
 		}
@@ -109,9 +111,9 @@ export class MiningManager extends Manager {
 			this.mode = 'early';
 			this.setup = Setups.worker.miner.default;
 		}
-			// else if (this.isDoubleSource() && this.brain.room.energyCapacityAvailable > DoubleMinerSetupCost) {
-			// 	this.mode = 'double';
-			// 	this.setup = Setups.worker.miner.double;
+		// else if (this.isDoubleSource() && this.brain.room.energyCapacityAvailable > DoubleMinerSetupCost) {
+		// 	this.mode = 'double';
+		// 	this.setup = Setups.worker.miner.double;
 		// }
 		else if (this.link) {
 			this.mode = 'link';
@@ -131,7 +133,7 @@ export class MiningManager extends Manager {
 		// this.minersNeeded = this.isDisabled ? 0 : Math.min(Math.ceil(this.miningPowerNeeded / miningPowerEach),
 		// 							 this.pos.availableNeighbors(true).length);
 		this.minersNeeded = Math.min(Math.ceil(this.miningPowerNeeded / miningPowerEach),
-									 this.pos.availableNeighbors(true).length);
+			this.pos.availableNeighbors(true).length);
 		this.minersNeeded = this.isDisabled ? 0 : this.minersNeeded;
 		// Allow drop mining at low levels
 		this.allowDropMining = this.brain.level < MiningManager.settings.dropMineUntilRCL;
@@ -140,7 +142,7 @@ export class MiningManager extends Manager {
 				this.harvestPos = this.container.pos;
 			} else if (this.link) {
 				this.harvestPos = _.find(this.link.pos.availableNeighbors(true),
-										 pos => pos.getRangeTo(this) == 1)!;
+					pos => pos.getRangeTo(this) == 1)!;
 			} else {
 				this.harvestPos = this.calculateContainerPos();
 			}
@@ -159,7 +161,7 @@ export class MiningManager extends Manager {
 		if (room) {
 			this.source = this.source || _.first(room.sources);
 			const otherSource = _.find(this.source.pos.findInRange(FIND_SOURCES, 2),
-									   source => source.id != (this.source ? this.source.id : ''));
+				source => source.id != (this.source ? this.source.id : ''));
 			if (otherSource) {
 				this.secondSource = otherSource;
 				// If its over 1 spot away, is there spot in between to mine?
@@ -215,21 +217,24 @@ export class MiningManager extends Manager {
 	private findBlockingStructure(target: RoomObject): Structure | undefined {
 		if (!this.room) return;
 		const pos = Pathing.findBlockingPos(this.brain.pos, target.pos,
-											_.filter(this.room.structures, s => !s.isWalkable));
+			_.filter(this.room.structures, s => !s.isWalkable));
 		if (pos) {
 			const structure = _.find(pos.lookFor(LOOK_STRUCTURES), s => !s.isWalkable);
 			return structure || log.error(`${this.print}: no structure at blocking pos ${pos.print}!`);
-        }
-        return;
+		}
+		return;
 	}
 
 	private populateStructures() {
 		if (Game.rooms[this.pos.roomName]) {
 			this.source = _.first(this.pos.lookFor(LOOK_SOURCES));
 			this.constructionSite = _.first(_.filter(this.pos.findInRange(FIND_MY_CONSTRUCTION_SITES, 2),
-													 site => site.structureType == STRUCTURE_CONTAINER ||
-															 site.structureType == STRUCTURE_LINK));
+				site => site.structureType == STRUCTURE_CONTAINER
+					|| site.structureType == STRUCTURE_LINK
+					|| site.structureType == STRUCTURE_EXTENSION
+			));
 			this.container = this.pos.findClosestByLimitedRange(Game.rooms[this.pos.roomName].containers, 1);
+			this.extensions = _.filter(this.pos.findInRange(FIND_MY_STRUCTURES, 2), s => s.structureType === STRUCTURE_EXTENSION) as StructureExtension[];
 			this.link = this.pos.findClosestByLimitedRange(this.brain.availableLinks, 2);
 		}
 	}
@@ -240,7 +245,7 @@ export class MiningManager extends Manager {
 		}
 		super.refresh();
 		// Refresh your references to the objects
-		$.refresh(this, 'source', 'container', 'link', 'constructionSite');
+		$.refresh(this, 'source', 'container', 'link', 'constructionSite', 'extensions');
 	}
 
 
@@ -312,7 +317,7 @@ export class MiningManager extends Manager {
 			if (_.sum(this.container.store) > threshold * transportCapacity) {
 				this.brain.logisticsNetwork.requestOutput(this.container, {
 					resourceType: 'all',
-					dAmountdt   : this.energyPerTick
+					dAmountdt: this.energyPerTick
 				});
 			}
 		}
@@ -384,7 +389,7 @@ export class MiningManager extends Manager {
 			// if you have multiple miners and the source is visible
 			const targetPos = this.harvestPos || this.source.pos;
 			const minersNearSource = _.filter(this.miners,
-											  miner => miner.pos.getRangeTo(targetPos) <= SUICIDE_CHECK_FREQUENCY);
+				miner => miner.pos.getRangeTo(targetPos) <= SUICIDE_CHECK_FREQUENCY);
 			if (minersNearSource.length > this.minersNeeded) {
 				// if you have more miners by the source than you need
 				const oldestMiner = minBy(minersNearSource, miner => miner.ticksToLive || 9999);
@@ -411,7 +416,13 @@ export class MiningManager extends Manager {
 			if (res == ERR_NOT_IN_RANGE) { // approach mining site
 				if (this.goToMiningSite(miner)) return;
 			}
-			if (miner.carry.energy > 0.9 * miner.carryCapacity) {
+			if (miner.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * miner.store.getCapacity()) {
+				const target = _.first(_.filter(this.extensions, e => e.isEmpty));
+				if (target) {
+					miner.transfer(target, RESOURCE_ENERGY);
+					return;
+				}
+
 				miner.transfer(this.link, RESOURCE_ENERGY);
 			}
 			// If for whatever reason there's no reciever link, you can get stuck in a bootstrapping loop, so
@@ -440,6 +451,12 @@ export class MiningManager extends Manager {
 
 		// At this point the miner is in the room so we have vision of the source
 		const source = this.source as Source;
+		if (this.extensions.length && miner.store.getUsedCapacity(RESOURCE_ENERGY) >= Math.min(miner.store.getCapacity(), BUILD_POWER * miner.getActiveBodyparts(WORK))) {
+			const target = _.first(_.filter(this.extensions, e => e.isEmpty));
+			if (target) {
+				miner.transfer(target, RESOURCE_ENERGY);
+			}
+		}
 		// Container mining
 		if (this.container) {
 			if (this.container.hits < this.container.hitsMax
@@ -451,12 +468,12 @@ export class MiningManager extends Manager {
 		}
 		// Build output site
 		if (this.constructionSite) { // standard miners won't have both a container and a construction site
-			if (miner.carry.energy >= Math.min(miner.carryCapacity, BUILD_POWER * miner.getActiveBodyparts(WORK))) {
+			if (miner.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * miner.store.getCapacity()) {
 				return miner.build(this.constructionSite);
 			} else {
 				return this.harvestOrSleep(miner, source);
 			}
-        }
+		}
 		// Drop mining
 		if (this.allowDropMining) {
 			this.harvestOrSleep(miner, source);
@@ -596,18 +613,18 @@ export class MiningManager extends Manager {
 			log.info(`Miner dismantling completed in room ${miner.room.print}`);
 			delete this.memory.dismantleNeeded;
 			this.memory[DISMANTLE_CHECK] = getCacheExpiration(DISMANTLE_CHECK_FREQUENCY,
-															  DISMANTLE_CHECK_FREQUENCY / 5);
+				DISMANTLE_CHECK_FREQUENCY / 5);
 			return;
 		}
 
 		// Find the first reachable position to dismantle stuff
 		const dismantlePos = _.find(this.dismantlePositions,
-									pos => Pathing.isReachable(miner.pos, pos,
-															   _.filter(miner.room.structures, s => !s.isWalkable)));
+			pos => Pathing.isReachable(miner.pos, pos,
+				_.filter(miner.room.structures, s => !s.isWalkable)));
 		if (dismantlePos) {
 			// Find the first blocking structure on the target position
 			const dismantleTarget = _.find(dismantlePos.lookFor(LOOK_STRUCTURES),
-										   s => !s.isWalkable && !(<OwnedStructure>s).my);
+				s => !s.isWalkable && !(<OwnedStructure>s).my);
 			// Dismantle it
 			if (dismantleTarget) {
 				if (dismantleTarget.hits > 1000 && Game.time % 10 == 0) {
@@ -632,12 +649,12 @@ export class MiningManager extends Manager {
 	private goToMiningSite(miner: Bot, avoidSK = true): boolean {
 		if (this.harvestPos) {
 			if (!miner.pos.inRangeToPos(this.harvestPos, 0)) {
-				miner.goTo(this.harvestPos, {range: 0, pathOpts: {avoidSK: avoidSK}});
+				miner.goTo(this.harvestPos, { range: 0, pathOpts: { avoidSK: avoidSK } });
 				return true;
 			}
 		} else {
 			if (!miner.pos.inRangeToPos(this.pos, 1)) {
-				miner.goTo(this.pos, {range: 1, pathOpts: {avoidSK: avoidSK}});
+				miner.goTo(this.pos, { range: 1, pathOpts: { avoidSK: avoidSK } });
 				return true;
 			}
 		}
@@ -691,13 +708,13 @@ export class MiningManager extends Manager {
 	private handleMiner(miner: Bot) {
 
 		// Stay safe out there!
-		if (miner.avoidDanger({timer: 10, dropEnergy: true})) {
+		if (miner.avoidDanger({ timer: 10, dropEnergy: true })) {
 			return;
 		}
 		// // Check if stuff needs to be dismantled to clean up the room
 		if (this.memory.dismantleNeeded) {
 			return this.dismantleActions(miner);
-        }
+		}
 		// Run the appropriate mining actions
 		switch (this.mode) {
 			case 'early':

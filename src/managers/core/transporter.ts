@@ -52,7 +52,6 @@ export class TransportManager extends Manager {
         const transportPowerEach = setup.getBodyPotential(CARRY, this.brain);
         const neededTransportPower = this.neededTransportPower();
         const numTransporters = Math.ceil(neededTransportPower / transportPowerEach + 0.1);
-        log.debug(`number of transportedNeed(${numTransporters})`);
         if (this.transports.length == 0) {
             this.wishlist(numTransporters, setup, { priority: ManagerPriority.ownedRoom.firstTransport });
         } else {
@@ -65,7 +64,6 @@ export class TransportManager extends Manager {
     }
 
     private handleTransporter(transporter: Bot, request: LogisticsRequest | undefined) {
-        log.debug(`attempting to handle Trapsporter`);
         if (request) {
             const choices = this.brain.logisticsNetwork.bufferChoices(transporter, request);
             const bestChoice = _.last(_.sortBy(choices, choice => request.multiplier * choice.dQ / Math.max(choice.dQ, 0.1)));

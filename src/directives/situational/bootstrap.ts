@@ -42,7 +42,7 @@ export class DirectiveBootstrap extends Directive {
 
     init(): void {
         this.alert(`Brain in bootstrap mode!`, NotifierPriority.High);
-        if(Game.time % 100) {
+        if(Game.time % 100 == 0) {
             log.alert(`Brain ${this.room.print} is in emergency recovery mode`);
         }
     }

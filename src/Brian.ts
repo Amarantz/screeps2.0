@@ -27,6 +27,7 @@ import { CommandCenter } from 'components/CommandCenter';
 import { Bot } from 'bot/Bot';
 import { RoomPlanner } from 'roomPlanner/RoomPlanner';
 import { USE_TRY_CATCH } from 'settings';
+import { Oblisk } from 'components/Oblisk';
 
 export enum brainStage {
     Infant = 0,		// No storage and no incubator
@@ -186,6 +187,7 @@ export class Brain {
         },
         maxSourceDistance: 100
     };
+    towersComponent: Oblisk;
 
     constructor(id: number, roomName: string, outpost: string[]) {
         this.room = Game.rooms[roomName];
@@ -227,6 +229,7 @@ export class Brain {
         this.miningSites = {};
         this.roomNames = [this.room.name].concat(outpost);
         this.outposts = _.compact(_.map(outpost, outpost => Game.rooms[outpost]));
+        this.rooms = [this.room].concat(this.outposts);
         this.extractionSites = {};
         this.creeps = BigBrain.cache.creepsByBrain[this.name] || [];
         this.destinations = [];
@@ -265,6 +268,9 @@ export class Brain {
         this.memory = Mem.wrap(Memory.brains, this.room.name, getDefaultBrainMemory);
         // Refresh rooms
         this.room = Game.rooms[this.room.name];
+        const outpostRoomNames = _.filter(this.roomNames, roomName => this.room.name != roomName);
+		this.outposts =  _.compact(_.map(outpostRoomNames, outpost => Game.rooms[outpost]));
+		this.rooms = [this.room].concat(this.outposts);
         this.creeps = this.creeps = BigBrain.cache.creepsByBrain[this.name] || [];
         this.creepsByRoles = _.groupBy(this.creeps, creep => creep.memory.role);
         $.refresh(this, 'controller', 'extensions', 'links', 'towers', 'spawns', 'storage', 'sources', 'repairables', 'rechargeables', 'powerSpawn', 'extractors', 'factory', 'labs', 'constructionSites');
@@ -358,6 +364,10 @@ export class Brain {
         }
         if (this.spawns[0]) {
             this.spawner = new Spawner(this, this.spawns[0]);
+        }
+
+        if(this.towers[0]) {
+            this.towersComponent = new Oblisk(this, this.towers[0])
         }
 
         this.upgradeSite = new UpgradeSite(this, this.controller);

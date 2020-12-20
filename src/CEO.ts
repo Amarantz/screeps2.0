@@ -201,7 +201,6 @@ export class CEO implements ICeo {
     }
 
     private placeDirectives() {
-        log.debug(`Placing Directives`);
         const allBrains = getAllBrains();
         if (LATEST_BUILD_TICK == Game.time) {
             _.forEach(allBrains, brain => this.placeHarvestingDirectives(brain));

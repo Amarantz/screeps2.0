@@ -43,7 +43,6 @@ export class WorkerManager extends Manager {
 
 	constructor(colony: Brain, priority = ManagerPriority.ownedRoom.work) {
         super(colony, 'worker', priority);
-        console.log(this.priority);
 		// Compute barriers needing fortification or critical attention
 		// this.fortifyBarriers = $.structures(this, 'fortifyBarriers', () =>
 		// 	_.sortBy(_.filter(this.room.barriers, s =>
@@ -209,7 +208,7 @@ export class WorkerManager extends Manager {
 		// 	setup = CreepSetup.boosted(setup, ['construct']);
         // }
         // if(!this.brain.state.bootstrapping) {
-        //     this.wishlist(numWorkers, setup);
+            this.wishlist(numWorkers, setup);
         // }
 	}
 

@@ -239,6 +239,9 @@ export class Mem {
     // Clear memory for non-existent creeps
     for (const name in Memory.creeps) {
       if (!Game.creeps[name]) {
+        if(BigBrain.bots[name]) {
+          delete BigBrain.bots[name];
+        }
         delete Memory.creeps[name];
         delete global[name];
       }

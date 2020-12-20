@@ -23,7 +23,6 @@ export class UpgradingManager extends Manager {
         }
 
         if(this.brain.assets.energy > UpgradeSite.settings.energyBuffer || this.upgradeSite.controller.ticksToDowngrade < 500) {
-            log.debug(`attempting to init upgradeManger ${this.print}`);
             let setup = Setups.upgrader.default;
             if(this.brain.level == 8) {
                 setup = Setups.upgrader.rcl8;;

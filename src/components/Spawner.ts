@@ -130,14 +130,12 @@ export class Spawner extends Component {
 		this.manager = new QueenManager(this)
     }
     run(): void {
-		log.debug(`Spawner is running`);
         		// Handle spawning
 		if (!this.settings.suppressSpawning) {
 
 			// Spawn all queued creeps that you can
 			while (this.availableSpawns.length > 0) {
 				const result = this.spawnHighestPriorityCreep();
-				log.debug(`attempting to spawn ${JSON.stringify(result)}`);
 				if (result == ERR_NOT_ENOUGH_ENERGY) { // if you can't spawn something you want to
 					this.isOverloaded = true;
 				}
