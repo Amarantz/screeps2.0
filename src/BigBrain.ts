@@ -1,5 +1,5 @@
 import { GameCache } from "./caching/GameCache";
-import SETTINGS, { USE_TRY_CATCH, USE_SCREEPS_PROFILER, SUPPRESS_INVALID_DIRECTIVE_ALERTS, PROFILER_COLONY_LIMIT } from "./settings";
+import SETTINGS, { USE_TRY_CATCH, USE_SCREEPS_PROFILER, SUPPRESS_INVALID_DIRECTIVE_ALERTS, PROFILER_COLONY_LIMIT, GENERATE_PIXEL } from "./settings";
 import { profile } from "./profiler/Profiler";
 import { Harvester } from "roles/harvester";
 import { Upgrader } from "roles/upgrader";
@@ -153,7 +153,7 @@ export class BigBrain implements IBigBrain {
       this.shouldBuild = true;
     }
 
-    if(Game.time % 10000 == 0 && Game.cpu.bucket === 10000) {
+    if(Game.time % GENERATE_PIXEL === 0 && Game.cpu.bucket === 10000 && this.shouldBuild === false) {
       Game.cpu.generatePixel();
     }
   }

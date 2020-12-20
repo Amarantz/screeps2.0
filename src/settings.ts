@@ -15,7 +15,8 @@ export const PROFILER_COLONY_LIMIT = 10;
 export const USE_TRY_CATCH = true;
 export const MAX_OWNED_ROOMS = Infinity;
 export const SHARD3_MAX_OWNED_ROOMS = 3;
-global.__DEFAULT_BIGBRAIN_SIGNAGUER__ = settings.SIGNATURE;
+export const GENERATE_PIXEL = 1000;
+global.__DEFAULT_BIGBRAIN_SIGNATURE__ = settings.SIGNATURE;
 
 /**
  * The amount of credits that Overmind will try to keep in the bank. Default:
