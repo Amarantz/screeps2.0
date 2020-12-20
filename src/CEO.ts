@@ -18,6 +18,7 @@ import { Roles } from "creepSetup/setup";
 import { bodyCost } from "creepSetup/CreepSetup";
 import { DirectiveBootstrap } from "directives/situational/bootstrap";
 import settings from 'settings';
+import { DirectiveMineral } from "directives/resource/mineral";
 
 // export const DIRECTIVE_CHECK_FREQUENCY = 2;
 
@@ -271,6 +272,10 @@ export class CEO implements ICeo {
     private placeHarvestingDirectives(brain: Brain) {
         for (const source of brain.sources) {
             DirectiveHarvest.createIfNotPresent(source.pos, 'pos');
+        }
+
+        if(brain.controller.level >= 6 && brain.terminal) {
+            _.forEach(brain.extractors, extractor => DirectiveMineral.createIfNotPresent(extractor.pos, 'pos'))
         }
     }
 

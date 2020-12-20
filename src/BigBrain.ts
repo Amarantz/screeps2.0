@@ -152,6 +152,10 @@ export class BigBrain implements IBigBrain {
       }
       this.shouldBuild = true;
     }
+
+    if(Game.time % 10000 == 0 && Game.cpu.bucket === 10000) {
+      Game.cpu.generatePixel();
+    }
   }
 
   public init(): void {
@@ -180,8 +184,10 @@ export class BigBrain implements IBigBrain {
       this.bots[name].refresh();
     }
 
-    for(const name in this.powerBots) {
-      this.powerBots[name].refresh();
+    for(const name in this.managers) {
+      if(name && this.managers[name]) {
+        this.managers[name].refresh();
+      }
     }
     this.shouldBuild = false;
   }

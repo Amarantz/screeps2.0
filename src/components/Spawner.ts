@@ -223,9 +223,9 @@ export class Spawner extends Component {
 		}
 		// If you have a spawn available then spawn the creep
 		if (spawnToUse) {
-			if (this.brain.bunker && this.brain.bunker.coreSpawn
-				&& spawnToUse.id == this.brain.bunker.coreSpawn.id && !options.directions) {
-				options.directions = [TOP, RIGHT]; // don't spawn into the manager spot
+			if (this.brain.bunker && this.brain.bunker.rightSpawn
+				&& spawnToUse.id == this.brain.bunker.rightSpawn.id && !options.directions) {
+				options.directions = [BOTTOM, RIGHT, TOP_RIGHT,BOTTOM_RIGHT]; // don't spawn into the manager spot
 			}
 			protoCreep.name = this.generateCreepName(protoCreep.name); // modify the creep name to make it unique
 			protoCreep.memory.data.origin = spawnToUse.pos.roomName;

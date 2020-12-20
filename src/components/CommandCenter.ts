@@ -113,9 +113,9 @@ export class CommandCenter extends Component {
     private registerRequests(): void {
 
         // Refill core spawn (only applicable to bunker layouts)
-        if (this.brain.bunker && this.brain.bunker.coreSpawn) {
-            if (this.brain.bunker.coreSpawn.energy < this.brain.bunker.coreSpawn.energyCapacity) {
-                this.transportRequests.requestInput(this.brain.bunker.coreSpawn, Priority.Normal);
+        if (this.brain.bunker && this.brain.bunker.rightSpawn) {
+            if (this.brain.bunker.rightSpawn.energy < this.brain.bunker.rightSpawn.energyCapacity) {
+                this.transportRequests.requestInput(this.brain.bunker.rightSpawn, Priority.Normal);
             }
         }
 

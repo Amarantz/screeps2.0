@@ -99,9 +99,9 @@ export interface Assets {
 
 export interface BunkerData {
     anchor: RoomPosition;
-    topSpawn: StructureSpawn | undefined;
-    coreSpawn: StructureSpawn | undefined;
     rightSpawn: StructureSpawn | undefined;
+    leftSpawn: StructureSpawn | undefined;
+    bottomSpawn: StructureSpawn | undefined;
 }
 
 @profile

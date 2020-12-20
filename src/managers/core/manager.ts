@@ -109,7 +109,7 @@ export class CommandCenterOverlord extends Manager {
 		if (this.brain.layout == 'twoPart') {
 			setup = Setups.managers.twoPart;
 		}
-		if (this.brain.bunker && this.brain.bunker.coreSpawn && this.brain.level == 8
+		if (this.brain.bunker && this.brain.bunker.rightSpawn && this.brain.level == 8
 			&& !this.brain.roomPlanner.memory.relocating) {
 			setup = Setups.managers.stationary;
 			// // Spawn a worker manager to repair central tiles
@@ -119,8 +119,8 @@ export class CommandCenterOverlord extends Manager {
 			// 	setup = Setups.managers.stationary_work; // use working manager body if you have something to repair
 			// }
 			spawnRequestOptions = {
-				spawn     : this.brain.bunker.coreSpawn,
-				directions: [this.brain.bunker.coreSpawn.pos.getDirectionTo(this.brain.bunker.anchor)]
+				spawn     : this.brain.bunker.rightSpawn,
+				directions: [this.brain.bunker.rightSpawn.pos.getDirectionTo(this.brain.bunker.anchor)]
 			};
 		}
 		this.wishlist(1, setup, {options: spawnRequestOptions});
