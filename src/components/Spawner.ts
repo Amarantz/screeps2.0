@@ -2,15 +2,18 @@ import { Manager } from "managers/Manager";
 import { bodyCost, CreepSetup } from "creepSetup/CreepSetup";
 import { profile } from "../profiler";
 import { Component } from "./Component";
-import { Brain } from "Brian";
+import { Brain, brainStage } from "Brian";
 import { Mem } from "memory/memory";
 import { $ } from "caching/GlobalCache";
 import { Pathing } from "movement/Pathing";
 import { Movement } from "movement/Movement";
 import { Stats } from "stats/stats";
-import { ema } from "utils/utils";
+import { ema, hasMinerals } from "utils/utils";
 import { log } from "console/log";
 import { Bot } from "bot/Bot";
+import { TransportRequestGroup } from "logistics/TransportRequestGroup";
+import { Priority } from "priorities/priorities";
+import { QueenManager } from "managers/core/queen";
 
 const ERR_ROOM_ENERGY_CAPACITY_NOT_ENOUGH = -20;
 const ERR_SPECIFIED_SPAWN_BUSY = -21;
@@ -53,6 +56,8 @@ export class Spawner extends Component {
 	energyStructures: (StructureSpawn | StructureExtension)[]; 	// All spawns and extensions
 	link: StructureLink | undefined; 						// The input link
 	towers: StructureTower[]; 								// All towers that aren't in the command center
+	transportRequests: TransportRequestGroup;
+	manager: QueenManager;
 	battery: StructureContainer | undefined;				// The container to provide an energy buffer
     settings: { refillTowersBelow: number; linksRequestEnergyBelow: number; suppressSpawning: boolean; };
     private productionPriorities: number[];
@@ -81,6 +86,7 @@ export class Spawner extends Component {
 			linksRequestEnergyBelow: 0,
 			suppressSpawning       : false,
 		};
+		this.transportRequests = brain.transportRequest;
     }
     refresh(): void {
         this.memory = Mem.wrap(this.brain.memory, 'spawner', getDefaultSpawnerMemory);
@@ -93,7 +99,7 @@ export class Spawner extends Component {
 		this._waitTimes = undefined;
     }
     init(): void {
-
+		this.registerEnergyRequests();
     }
 
     private computeEnergyStructures(): (StructureSpawn | StructureExtension)[] {
@@ -121,7 +127,7 @@ export class Spawner extends Component {
 	}
 
     higherManagers(): void {
-
+		this.manager = new QueenManager(this)
     }
     run(): void {
 		log.debug(`Spawner is running`);
@@ -174,7 +180,31 @@ export class Spawner extends Component {
 			this.productionPriorities.push(priority); // this is necessary because keys interpret number as string
 		}
 		this.productionQueue[priority].push(request);
-    }
+	}
+
+		/* Request more energy when appropriate either via link or hauler */
+		private registerEnergyRequests(): void {
+			// Register requests for input into the hatchery (goes on brain store group)
+			if (this.link && this.link.isEmpty) {
+				this.brain.linkNetwork.requestReceive(this.link);
+			}
+			if (this.battery) {
+				const threshold = this.brain.stage == brainStage.Infant ? 0.75 : 0.5;
+				if (this.battery.energy < threshold * this.battery.storeCapacity) {
+					this.brain.logisticsNetwork.requestInput(this.battery, {multiplier: 1.5});
+				}
+				// get rid of any minerals in the container if present
+				//@ts-ignore
+				if (hasMinerals(this.battery.store)) {
+					this.brain.logisticsNetwork.requestOutputMinerals(this.battery);
+				}
+			}
+
+			_.forEach(this.energyStructures, struct => this.transportRequests.requestInput(struct, Priority.Normal));
+
+			const refillTowers = _.filter(this.towers, tower => tower.energy < this.settings.refillTowersBelow);
+			_.forEach(refillTowers, tower => this.transportRequests.requestInput(tower, Priority.NormalLow));
+		}
 
     private spawnCreep(protoCreep: ProtoCreep, options: SpawnRequestOptions = {}): number {
 		// If you can't build it, return this error
@@ -243,8 +273,8 @@ export class Spawner extends Component {
 	private spawnHighestPriorityCreep(): number | undefined {
 		const sortedKeys = _.sortBy(this.productionPriorities);
 		for (const priority of sortedKeys) {
-			// if (this.colony.defcon >= DEFCON.playerInvasion
-			// 	&& !this.colony.controller.safeMode
+			// if (this.brain.defcon >= DEFCON.playerInvasion
+			// 	&& !this.brain.controller.safeMode
 			// 	&& priority > OverlordPriority.warSpawnCutoff) {
 			// 	continue; // don't spawn non-critical creeps during wartime
 			// }
@@ -281,7 +311,7 @@ export class Spawner extends Component {
 
 		// Generate the creep memory
 		const creepMemory: CreepMemory = {
-			[MEM.BRAIN]  : manager.brain.name, 				// name of the colony the creep is assigned to
+			[MEM.BRAIN]  : manager.brain.name, 				// name of the brain the creep is assigned to
 			[MEM.MANAGER]: manager.ref,						// name of the Overlord running this creep
 			role          : setup.role,						// role of the creep
 			task          : null, 								// task the creep is performing

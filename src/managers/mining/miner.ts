@@ -11,6 +11,7 @@ import { log } from "console/log";
 import { Pathing } from "movement/Pathing";
 import { DirectiveOutpost } from "directives/colony/outpost";
 import { $ } from '../../caching/GlobalCache';
+import { brainStage } from "Brian";
 
 export const StandardMinerSetupCost = bodyCost(Setups.worker.miner.standard.generateBody(Infinity));
 
@@ -60,7 +61,7 @@ export class MiningManager extends Manager {
 
 	static settings = {
 		minLinkDistance : 10,
-		dropMineUntilRCL: 8,
+		dropMineUntilRCL: 3,
 	};
 
 	constructor(directive: DirectiveHarvest, priority: number) {
@@ -68,7 +69,8 @@ export class MiningManager extends Manager {
 		this.distance = directive.distance;
 
 		this.priority += this.outpostIndex * ManagerPriority.remoteRoom.roomIncrement;
-		this.miners = this.bots(Roles.botHarvester);
+		console.log(this.priority);
+		this.miners = this.bots(Roles.harvester);
 
 		// Populate structures
 		this.populateStructures();
@@ -125,7 +127,7 @@ export class MiningManager extends Manager {
 			// todo: double miner condition
 		}
 
-		const miningPowerEach = this.setup.getBodyPotential(WORK, this.brain.room.energyCapacityAvailable);
+		const miningPowerEach = this.setup.getBodyPotential(WORK, this.brain);
 		// this.minersNeeded = this.isDisabled ? 0 : Math.min(Math.ceil(this.miningPowerNeeded / miningPowerEach),
 		// 							 this.pos.availableNeighbors(true).length);
 		this.minersNeeded = Math.min(Math.ceil(this.miningPowerNeeded / miningPowerEach),
@@ -303,27 +305,27 @@ export class MiningManager extends Manager {
 	}
 
 	private registerEnergyRequests(): void {
-		// if (this.container) {
-		// 	const transportCapacity = 200 * this.brain.level;
-		// 	const threshold = this.brain.stage > ColonyStage.Larva ? 0.8 : 0.5;
-		// 	if (_.sum(this.container.store) > threshold * transportCapacity) {
-		// 		this.brain.logisticsNetwork.requestOutput(this.container, {
-		// 			resourceType: 'all',
-		// 			dAmountdt   : this.energyPerTick
-		// 		});
-		// 	}
-		// }
-		// if (this.link) {
-		// 	// If the link will be full with next deposit from the miner
-		// 	const minerCapacity = 150;
-		// 	if (this.link.energy + minerCapacity > this.link.energyCapacity) {
-		// 		this.brain.linkNetwork.requestTransmit(this.link);
-		// 	}
-		// }
+		if (this.container) {
+			const transportCapacity = 200 * this.brain.level;
+			const threshold = this.brain.stage > brainStage.Infant ? 0.8 : 0.5;
+			//@ts-ignore
+			if (_.sum(this.container.store) > threshold * transportCapacity) {
+				this.brain.logisticsNetwork.requestOutput(this.container, {
+					resourceType: 'all',
+					dAmountdt   : this.energyPerTick
+				});
+			}
+		}
+		if (this.link) {
+			// If the link will be full with next deposit from the miner
+			const minerCapacity = 150;
+			if (this.link.energy + minerCapacity > this.link.energyCapacity) {
+				this.brain.linkNetwork.requestTransmit(this.link);
+			}
+		}
 	}
 
 	init() {
-		log.debug(`init on Miner called checking minersNeeded (${this.minersNeeded})`);
 		this.wishlist(this.minersNeeded, this.setup);
 		this.registerEnergyRequests();
 	}
@@ -414,12 +416,12 @@ export class MiningManager extends Manager {
 			}
 			// If for whatever reason there's no reciever link, you can get stuck in a bootstrapping loop, so
 			// occasionally check for this and drop energy on the ground if needed
-			// if (Game.time % 10 == 0) {
-			// 	const commandCenterLink = this.brain.commandCenter ? this.brain.commandCenter.link : undefined;
-			// 	if (!commandCenterLink) {
-			// 		miner.drop(RESOURCE_ENERGY);
-			// 	}
-			// }
+			if (Game.time % 10 == 0) {
+				const commandCenterLink = this.brain.commandCenter ? this.brain.commandCenter.link : undefined;
+				if (!commandCenterLink) {
+					miner.drop(RESOURCE_ENERGY);
+				}
+			}
 		} else {
 			log.warning(`${this.print}: Link miner ${miner.print} has no link! (Why?)`);
 		}
@@ -430,17 +432,14 @@ export class MiningManager extends Manager {
 	 */
 	private standardMiningActions(miner: Bot) {
 		// TODO reeval to do mining first, try intent and if fail then more for cpu gain
-        log.alert('check sleep');
 		// Sleep until your source regens
 		if (this.isSleeping(miner)) return;
 
-        log.alert('check goToMineSite');
 		// Approach mining site
 		if (this.goToMiningSite(miner)) return;
 
 		// At this point the miner is in the room so we have vision of the source
 		const source = this.source as Source;
-        log.alert('We should be trying to mine container')
 		// Container mining
 		if (this.container) {
 			if (this.container.hits < this.container.hitsMax
@@ -450,8 +449,6 @@ export class MiningManager extends Manager {
 				return this.harvestOrSleep(miner, source);
 			}
 		}
-
-        log.alert('We should be trying to mine container')
 		// Build output site
 		if (this.constructionSite) { // standard miners won't have both a container and a construction site
 			if (miner.carry.energy >= Math.min(miner.carryCapacity, BUILD_POWER * miner.getActiveBodyparts(WORK))) {
@@ -460,8 +457,6 @@ export class MiningManager extends Manager {
 				return this.harvestOrSleep(miner, source);
 			}
         }
-
-        log.alert('We should be trying to mine drop')
 		// Drop mining
 		if (this.allowDropMining) {
 			this.harvestOrSleep(miner, source);
@@ -635,8 +630,6 @@ export class MiningManager extends Manager {
 	 * Move onto harvesting position or near to source
 	 */
 	private goToMiningSite(miner: Bot, avoidSK = true): boolean {
-        log.alert('Go To mining Site')
-        log.alert(this.harvestPos);
 		if (this.harvestPos) {
 			if (!miner.pos.inRangeToPos(this.harvestPos, 0)) {
 				miner.goTo(this.harvestPos, {range: 0, pathOpts: {avoidSK: avoidSK}});
@@ -697,17 +690,14 @@ export class MiningManager extends Manager {
 
 	private handleMiner(miner: Bot) {
 
-        log.alert(`${this.mode}`);
 		// Stay safe out there!
 		if (miner.avoidDanger({timer: 10, dropEnergy: true})) {
 			return;
 		}
-        log.alert(`${this.mode}`);
 		// // Check if stuff needs to be dismantled to clean up the room
-		// if (this.memory.dismantleNeeded) {
-		// 	return this.dismantleActions(miner);
-        // }
-        log.alert(`${this.mode}`);
+		if (this.memory.dismantleNeeded) {
+			return this.dismantleActions(miner);
+        }
 		// Run the appropriate mining actions
 		switch (this.mode) {
 			case 'early':
@@ -727,9 +717,7 @@ export class MiningManager extends Manager {
 	}
 
 	run() {
-		log.debug(`attempting to run miners and number of miners; ${this.miners.length}`);
 		for (const miner of this.miners) {
-			log.debug(`handling miner ${miner.print}`);
 			this.handleMiner(miner);
 		}
 		if (this.room && Game.time % BUILD_OUTPUT_FREQUENCY == 1) {

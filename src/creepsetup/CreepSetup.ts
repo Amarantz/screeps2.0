@@ -99,8 +99,13 @@ export class CreepSetup {
 	}
 
 
-    getBodyPotential(partType: BodyPartConstant, energyCapacity: number ): number {
-        let body = this.generateBody(energyCapacity)
+    getBodyPotential(partType: BodyPartConstant, brain: Brain ): number {
+        let energyCapacity = brain.room.energyCapacityAvailable;
+        if(brain.spawnGroup){
+            // const brains = _.compact(_.map(brain.spawnGroup!.memory.brains, name => BigBrain.brains[name])) as Brain[];
+            // energyCapacity = _.max(_.map(brains, brain => brain.room.energyCapacityAvailable));
+        }
+        const body = this.generateBody(energyCapacity)
         return _.filter(body, (part: BodyPartConstant) => part == partType).length;
     }
 

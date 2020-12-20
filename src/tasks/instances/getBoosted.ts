@@ -1,7 +1,7 @@
-import { log } from "console/log";
-import { profile } from 'profiler';
-import { Task } from "../Task";
-import { BOOST_PARTS } from "resources/map_resoures";
+import {log} from '../../console/log';
+import { profile } from "profiler";
+import {BOOST_PARTS} from '../../resources/map_resoures';
+import {Task} from '../Task';
 
 export type getBoostedTargetType = StructureLab;
 export const getBoostedTaskName = 'getBoosted';
@@ -70,3 +70,5 @@ export class TaskGetBoosted extends Task {
 		}
 	}
 }
+
+

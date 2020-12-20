@@ -3,8 +3,14 @@ export function onPublicServer(): boolean {
   return Game.shard.name.includes("shard");
 }
 
-export function printRoomName(roomName: string): string {
-	return '<a href="#!/room/' + Game.shard.name + '/' + roomName + '">' + roomName + '</a>';
+export function printRoomName(roomName: string, aligned = false): string {
+	if (aligned) {
+		const msg = '<a href="#!/room/' + Game.shard.name + '/' + roomName + '">' + roomName + '</a>';
+		const extraSpaces = 'E12S34'.length - roomName.length;
+		return msg + ' '.repeat(extraSpaces);
+	} else {
+		return '<a href="#!/room/' + Game.shard.name + '/' + roomName + '">' + roomName + '</a>';
+	}
 }
 
 /**
@@ -293,4 +299,28 @@ export function canClaimAnotherRoom(): boolean {
 
 export function hasJustSpawned(): boolean {
 	return _.keys(BigBrain.brains).length == 1 && _.keys(Game.creeps).length == 0 && _.keys(Game.spawns).length == 1;
+}
+
+export function minMax(value: number, min: number, max: number): number {
+	return Math.max(Math.min(value, max), min);
+}
+
+export function hasMinerals(store: { [resourceType: string]: number }): boolean {
+	for (const resourceType in store) {
+		if (resourceType != RESOURCE_ENERGY && (store[<ResourceConstant>resourceType] || 0) > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+export function posFromReadableName(str: string | undefined | null): RoomPosition | undefined {
+	if (!str) return;
+	const posName = _.first(str.match(/(E|W)\d+(N|S)\d+:\d+:\d+/g) || []);
+	if (posName) {
+		const [roomName, x, y] = posName.split(':');
+		return new RoomPosition(parseInt(x, 10), parseInt(y, 10), roomName);
+  }
+  return;
 }

@@ -6,6 +6,10 @@ import { profile } from "../profiler/Profiler";
 import { log } from "console/log";
 import { Stats } from "stats/stats";
 
+export function getAutonomyLevel(): number {
+	return 2;
+}
+
 export enum Autonomy {
   Manual = 0,
   SemiAutomatic = 1,

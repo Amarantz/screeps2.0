@@ -3,6 +3,8 @@ import { log } from "console/log";
 import { profile } from 'profiler';
 import { Directive } from "directives/directive";
 import { RoomIntel } from "intel/RoomIntel";
+import { ReserveringManager } from "../../managers/colonization/reserver";
+import { StationaryScoutManager } from "managers/scouting/stationaryScout";
 
 /**
  * Registers an unowned mining outpost for a nearby brain
@@ -21,10 +23,10 @@ export class DirectiveOutpost extends Directive {
 	HigherManager() {
 		if (this.brain.level >= DirectiveOutpost.settings.canSpawnReserversAtRCL) {
 			if (Cartographer.roomType(this.pos.roomName) == ROOMTYPE_CONTROLLER) {
-				// this.managers.reserve = new ReservingOverlord(this);
+				this.managers.reserve = new ReserveringManager(this);
 			}
 		} else {
-			// this.managers.scout = new StationaryScoutOverlord(this);
+			this.managers.scout = new StationaryScoutManager(this);
 		}
 	}
 

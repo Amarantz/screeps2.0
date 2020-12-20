@@ -19,6 +19,8 @@ import { NotifierPriority } from "directives/Notifier";
 import { Z_MEM_ERROR } from "zlib";
 import { RoomIntel } from "intel/RoomIntel";
 import { Stats } from "stats/stats";
+import { TerminalNetworkV2 } from "logistics/TerminalNetwork";
+import { TraderJoe } from "logistics/TradeNetwork";
 
 
 const profilerRooms: {[roomName:string]: boolean} = {};
@@ -40,6 +42,8 @@ export class BigBrain implements IBigBrain {
   public CEO: ICeo;
   constructionSites: ConstructionSite<BuildableStructureConstant>[];
   errors: Error[];
+  terminalNetwork: TerminalNetworkV2;
+  tradeNetwork: ITradeNetwork;
 
 
   public constructor() {
@@ -53,9 +57,15 @@ export class BigBrain implements IBigBrain {
     this.managers = {};
     this.brainsMaps = {};
     this.directives = {};
+    this.terminalNetwork = new TerminalNetworkV2();
+    global.terminalNetwork = this.terminalNetwork;
+    this.tradeNetwork = new TraderJoe();
+    global.tradeNetwork = this.tradeNetwork;
+    // this.expantionPlanner = new ExpansionPlanner();
     this.errors = [];
     this.roomIntel = new RoomIntel();
   }
+  traderJoe: ITradeNetwork;
 
   public build(): void {
     this.memory = Memory.BigBrain;
@@ -64,9 +74,6 @@ export class BigBrain implements IBigBrain {
     _.forEach(this.brains, brain => brain.higherManagers());
     this.buildDirectives();
     _.forEach(this.directives, directive => directive.HigherManager());
-    this.findConstructionSites();
-
-    this.creepsByRole = _.groupBy(Game.creeps, creep => creep.memory.role);
     this.shouldBuild = false;
   }
 
@@ -90,7 +97,7 @@ export class BigBrain implements IBigBrain {
       if(dir && exist && spawn) {
         dir.HigherManager();
       }
-      if(!dir && Game.time % 11 == 0) {
+      if(!dir && !SUPPRESS_INVALID_DIRECTIVE_ALERTS && Game.time % 11 == 0) {
         log.alert(`Invalid Directive ${name} at position: ${Game.flags[name].pos.roomName}`)
       }
     }
@@ -130,6 +137,7 @@ export class BigBrain implements IBigBrain {
         this.brains[roomName] = new Brain(id, roomName, outpost[roomName]);
       } catch (e) {
         e.name = `Error while creating brain in room ${roomName}: ${e.name}`;
+        log.debug(`${e.name} ${e.stack}`);
         this.errors.push(e);
       }
     }
@@ -140,7 +148,7 @@ export class BigBrain implements IBigBrain {
     // todo
     if(this.errors.length > 0) {
       for(const e of this.errors) {
-        log.error(e)
+        log.error(`${e.name}`);
       }
       this.shouldBuild = true;
     }
@@ -148,6 +156,8 @@ export class BigBrain implements IBigBrain {
 
   public init(): void {
     this.try(() => RoomIntel.init());
+    this.try(() => this.tradeNetwork.init());
+    this.try(() => this.terminalNetwork.init())
     this.CEO.init();
     for(const brain in this.brains){
       const start = Game.cpu.getUsed();
@@ -155,40 +165,6 @@ export class BigBrain implements IBigBrain {
       Stats.log(`brains.${brain}.runtime`, Game.cpu.getUsed() - start);
     }
     this.errors = [];
-    this.oldInit();
-  }
-
-  private oldInit() {
-    const spawn = Game.spawns['Spawn1'];
-    // if (!this.creepsByRole.harvester || this.creepsByRole.harvester && this.creepsByRole.harvester.length < 2) {
-    //   const newName = 'Harvester' + Game.time;
-    //   spawn.spawnCreep(Setups.worker.miner.bootstrap.generateBody(spawn.room.energyCapacityAvailable), newName,
-    //     { memory: { role: Roles.harvester } });
-    // }
-
-    if (!this.creepsByRole.upgrader || this.creepsByRole.upgrader && this.creepsByRole.upgrader.length < 2) {
-      const newName = 'Upgrader' + Game.time;
-      spawn.spawnCreep(Setups.upgrader.default.generateBody(spawn.room.energyCapacityAvailable), newName,
-        { memory: { role: Roles.upgrader } });
-    }
-
-    if (!this.creepsByRole.builder && Object.keys(this.constructionSites).length > 0 || this.creepsByRole.builder && this.creepsByRole.builder.length < 1) {
-      const newName = 'Builder' + Game.time;
-      spawn.spawnCreep(Setups.builder.default.generateBody(spawn.room.energyCapacityAvailable), newName,
-        { memory: { role: 'builder' } });
-    }
-
-    if (!this.creepsByRole.transport || this.creepsByRole.transport && this.creepsByRole.transport.length < 2) {
-      const newName = 'Transport' + Game.time;
-      spawn.spawnCreep(Setups.transport.default.generateBody(spawn.room.energyCapacityAvailable), newName,
-        { memory: { role: Roles.transport } });
-    }
-
-    if (spawn.room.storage && !this.creepsByRole.filler || this.creepsByRole.filler && this.creepsByRole.filler.length < 2) {
-      const newName = 'Filller' + Game.time;
-      spawn.spawnCreep(Setups.filler.default.generateBody(spawn.room.energyCapacityAvailable), newName,
-        { memory: { role: Roles.filler } });
-    }
   }
 
   public refresh(): void {
@@ -207,8 +183,6 @@ export class BigBrain implements IBigBrain {
     for(const name in this.powerBots) {
       this.powerBots[name].refresh();
     }
-    this.creepsByRole = _.groupBy(Game.creeps, creep => creep.memory.role);
-    this.findConstructionSites();
     this.shouldBuild = false;
   }
 
@@ -225,7 +199,6 @@ export class BigBrain implements IBigBrain {
 
   private refreshDirectives() {
     for(const name in this.directives) {
-      log.alert(this.directives[name].print)
       this.directives[name].refresh()
     }
     this.buildDirectives(true);
@@ -234,42 +207,12 @@ export class BigBrain implements IBigBrain {
   public run(): void {
     this.CEO.run();
     for(const brain in this.brains){
-      this.try(() => {
-        log.alert(`Attempting to run brain: ${this.brains[brain].print}`);
-        this.brains[brain].run();
-      }, brain);
+      this.try(() => this.brains[brain].run(), brain);
     }
-    this.oldRun();
+    this.try(() => this.terminalNetwork.run());
+    this.try(() => this.tradeNetwork.run());
+    // this.try(() => this.expantionPlanner.run());
     this.try(() => RoomIntel.run());
-  }
-
-  private oldRun() {
-    // if (this.creepsByRole && this.creepsByRole.harvester && this.creepsByRole.harvester.length > 0) {
-    //   _.forEach(this.creepsByRole.harvester, creep => Harvester.run(creep))
-    // }
-
-    if (this.creepsByRole && this.creepsByRole.upgrader && this.creepsByRole.upgrader.length > 0) {
-      _.forEach(this.creepsByRole.upgrader, creep => Upgrader.run(creep))
-    }
-
-    if (this.creepsByRole && this.creepsByRole.builder && this.creepsByRole.builder.length > 0) {
-      _.forEach(this.creepsByRole.builder, creep => Worker.run(creep, this.constructionSites))
-    }
-
-    if (this.creepsByRole && this.creepsByRole.transport && this.creepsByRole.transport.length > 0) {
-      this.creepsByRole.transport.forEach((creep) => Transport.run(creep));
-    }
-
-    if (this.creepsByRole && this.creepsByRole.filler && this.creepsByRole.filler.length > 0) {
-      this.creepsByRole.filler.forEach((creep) => Filler.run(creep));
-    }
-
-    _.forEach(Game.rooms, (room) => {
-      const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
-      const towers = room.find(FIND_MY_STRUCTURES, { filter: (s) => s.structureType === 'tower' });
-      _.forEach(towers, (tower: StructureTower) => tower.attack(hostileCreeps[0]));
-    })
-
   }
 
   private try(callback: () => any, identifier?: string): void {

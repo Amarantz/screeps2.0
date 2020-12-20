@@ -47,6 +47,12 @@ export class $ {
     return _cache.numbers[cacheKey];
   }
 
+  static numberRecall(saver: { ref: string }, key: string): number | undefined {
+		const cacheKey = saver.ref + '#' + key;
+		return _cache.numbers[cacheKey] as number | undefined;
+	}
+
+
   // TODO: for some reason overloading isn't working here...
   // static pos(saver: { ref: string }, key: string, callback: () => RoomPosition, timeout ?: number): RoomPosition;
   static pos(
@@ -65,15 +71,15 @@ export class $ {
     return _cache.roomPositions[cacheKey];
   }
 
-  static list<T>(saver: { ref: string }, key: string, callback: () => T[], timeout = CACHE_TIMEOUT): T[] {
-    const cacheKey = saver.ref + "l" + key;
-    if (_cache.lists[cacheKey] == undefined || Game.time > _cache.expiration[cacheKey]) {
-      // Recache if new entry or entry is expired
-      _cache.lists[cacheKey] = callback();
-      _cache.expiration[cacheKey] = getCacheExpiration(timeout, Math.ceil(timeout / 10));
-    }
-    return _cache.lists[cacheKey];
-  }
+	static list<T>(saver: { ref: string }, key: string, callback: () => T[], timeout = CACHE_TIMEOUT): T[] {
+		const cacheKey = saver.ref + 'l' + key;
+		if (_cache.lists[cacheKey] == undefined || Game.time > _cache.expiration[cacheKey]) {
+			// Recache if new entry or entry is expired
+			_cache.lists[cacheKey] = callback();
+			_cache.expiration[cacheKey] = getCacheExpiration(timeout, Math.ceil(timeout / 10));
+		}
+		return _cache.lists[cacheKey];
+	}
 
   static costMatrix(
     roomName: string,
@@ -134,22 +140,23 @@ export class $ {
     });
   }
 
-  static refreshObject<T extends Record<K, { [prop: string]: undefined | HasID | HasID[] }>, K extends string>(
-    thing: T,
-    ...keys: K[]
-  ): void {
-    // _.forEach(keys, function (key) {
-    //   if (_.isObject(thing[key])) {
-    //     for (const prop in thing[key]) {
-    //       if (_.isArray(thing[key][prop])) {
-    //         thing[key][prop] = _.compact(_.map(thing[key][prop] as HasId[], s => Game.getObjectById(s.id))) as HasID[];
-    //       } else {
-    //         thing[key][prop] = Game.getObjectById((<HasID>thing[key][prop]).id) as undefined | HasID;
-    //       }
-    //     }
-    //   }
-    // });
-  }
+	static refreshObject<T extends Record<K, { [prop: string]: undefined | HasID | HasID[] }>,
+		K extends string>(thing: T, ...keys: K[]): void {
+		_.forEach(keys, function(key) {
+			if (_.isObject(thing[key])) {
+				for (const prop in thing[key]) {
+					if (_.isArray(thing[key][prop])) {
+            //@ts-ignore
+						thing[key][prop] = _.compact(_.map(thing[key][prop] as HasID[],
+														   s => Game.getObjectById(s.id))) as HasID[];
+					} else {
+            //@ts-ignore
+						thing[key][prop] = Game.getObjectById((<HasID>thing[key][prop]).id) as undefined | HasID;
+					}
+				}
+			}
+		});
+	}
 
   static refreshRoom<T extends { room: Room }>(thing: T): void {
     thing.room = Game.rooms[thing.room.name];

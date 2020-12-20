@@ -7,8 +7,8 @@ declare const require: (module: string) => any;
 declare var global: any;
 
 interface Game {
-	_allRooms?: Room[];
-	_ownedRooms?: Room[];
+  _allRooms?: Room[];
+  _ownedRooms?: Room[];
 }
 
 declare const MARKET_FEE: 300; // missing in the typed-screeps declarations
@@ -42,7 +42,7 @@ declare namespace NodeJS {
 
 declare function print(...args: any[]): void;
 
-interface IBigBrainMemory {}
+interface IBigBrainMemory { }
 
 interface IBigBrain {
   CEO: ICeo;
@@ -51,11 +51,13 @@ interface IBigBrain {
   shouldBuild: boolean;
   cache: ICache;
   bots: { [creepName: string]: any };
-  powerBots: {[creepName:string ]: any};
+  powerBots: { [creepName: string]: any };
   brains: { [roomName: string]: any };
   brainsMaps: { [roomName: string]: string };
   memory: IBigBrainMemory;
-  managers: { [managerName: string]: any};
+  terminalNetwork: ITerminalNetwork;
+  tradeNetwork: ITradeNetwork;
+  managers: { [managerName: string]: any };
   errors: Error[];
   build(): void;
   init(): void;
@@ -67,14 +69,76 @@ interface INotifier {
   alert(message: string, roomName: string, priority?: number): void;
   generateNotificationsList(links: boolean): string[];
 }
+
+interface IExpansionPlanner {
+
+  refresh(): void;
+
+  init(): void;
+
+  run(): void;
+
+}
+
+interface ITerminalNetwork {
+
+  addBrain(brain: IBrain): void;
+
+  refresh(): void;
+
+  getAssets(): { [resourceType: string]: number };
+
+  thresholds(colony: IBrain, resource: ResourceConstant): Thresholds;
+
+  canObtainResource(requestor: IBrain, resource: ResourceConstant, totalAmount: number): boolean;
+
+  requestResource(requestor: IBrain, resource: ResourceConstant, totalAmount: number, tolerance?: number): void;
+
+  lockResource(requestor: IBrain, resource: ResourceConstant, lockedAmount: number): void;
+
+  exportResource(provider: IBrain, resource: ResourceConstant, thresholds?: Thresholds): void;
+
+  init(): void;
+
+  run(): void;
+}
+
+interface TradeOpts {
+  preferDirect?: boolean;			// true if you prefer to sell directly via a .deal() call
+  flexibleAmount?: boolean;		// true if you're okay filling the transaction with several smaller transactions
+  ignoreMinAmounts?: boolean;		// true if you want to ignore quantity checks (e.g. T5 commodities in small amounts)
+  ignorePriceChecksForDirect?: boolean; 	// true if you want to bypass price sanity checks when .deal'ing
+  dryRun?: boolean; 				// don't actually execute the trade, just check to see if you can make it
+}
+
+interface ITradeNetwork {
+  memory: any;
+
+  refresh(): void;
+
+  getExistingOrders(type: ORDER_BUY | ORDER_SELL, resource: ResourceConstant | 'any', roomName?: string): Order[];
+
+  priceOf(resource: ResourceConstant): number;
+
+  ordersProcessedThisTick(): boolean;
+
+  buy(terminal: StructureTerminal, resource: ResourceConstant, amount: number, opts?: TradeOpts): number;
+
+  sell(terminal: StructureTerminal, resource: ResourceConstant, amount: number, opts?: TradeOpts): number;
+
+  init(): void;
+
+  run(): void;
+}
+
 interface ICeo {
   notifier: INotifier;
   registerDirective(directive: Directive): void;
   removeDirective(directive: Directive): void;
   registerManager(manager: Manger): any;
   getDirectivesOfType(directiveName: string): any[];
-	getDirectivesInRoom(roomName: string): any[];
-	getDirectivesForBrain(brain: {name: string}): any[];
+  getDirectivesInRoom(roomName: string): any[];
+  getDirectivesForBrain(brain: { name: string }): any[];
   getManagersForBrain(brain: Brain): Manager[];
   refresh(): void;
   init(): void;
@@ -95,7 +159,7 @@ interface IGlobalCache {
 
 interface ICache {
   creepsByBrain: { [brain: string]: Creeps[] };
-  managers: {[manager: string]: { [roleName:string]: string[] }}
+  managers: { [manager: string]: { [roleName: string]: string[] } }
   targets: { [ref: string]: string[] };
   outpostFlags: Flag[];
   build(): void;
@@ -158,8 +222,44 @@ interface HasID {
 }
 
 type Full<T> = {
-	[P in keyof T]-?: T[P];
+  [P in keyof T]-?: T[P];
 };
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 declare var PERMACACHE: { [key: string]: any };
+
+
+type AnyStoreStructure =
+  StructureContainer
+  | StructureExtension
+  | StructureFactory
+  | StructureLab
+  | StructureLink
+  | StructureNuker
+  | StructurePowerSpawn
+  | StructureSpawn
+  | StructureStorage
+  | StructureTerminal
+  | StructureTower
+  | Ruin
+  | Tombstone;
+
+type TransferrableStoreStructure =
+  StructureContainer
+  | StructureExtension
+  | StructureFactory
+  | StructureLab
+  | StructureLink
+  | StructureNuker
+  | StructurePowerSpawn
+  | StructureSpawn
+  | StructureStorage
+  | StructureTerminal
+  | StructureTower;
+
+
+interface Thresholds {
+  target: number;
+  surplus: number | undefined;
+  tolerance: number;
+}

@@ -102,6 +102,11 @@ export abstract class Manager {
 		return '<a href="#!/room/' + Game.shard.name + '/' + this.pos.roomName + '">[' + this.ref + ']</a>';
 	}
 
+	debug(...args: any[]) {
+		if (this.memory.debug) {
+			log.alert(this.print, args);
+		}
+	}
 
     get isSuspended(): boolean {
         if (this.memory.suspend) {

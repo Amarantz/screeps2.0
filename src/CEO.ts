@@ -1,18 +1,23 @@
 import { getAllBrains, Brain } from "Brian";
 import { log } from "console/log";
 import { Cartographer, ROOMTYPE_CONTROLLER } from "utils/Cartographer";
-import { onPublicServer, canClaimAnotherRoom, getAllRooms } from "utils/utils";
+import { onPublicServer, canClaimAnotherRoom, getAllRooms, hasJustSpawned, minBy } from "utils/utils";
 import { RoomIntel } from "intel/RoomIntel";
 import { DirectiveHarvest } from "directives/resource/harvest";
 import { Manager } from "managers/Manager";
 import { Directive } from "directives/directive";
-import { USE_TRY_CATCH } from "settings";
+import { USE_TRY_CATCH, PROFILER_COLONY_LIMIT } from "settings";
 import { Notifier } from "directives/Notifier";
 import { profile } from "profiler";
 import { Mem } from "memory/memory";
 import { p } from "utils/random";
 import { Pathing } from "movement/Pathing";
 import { DirectiveOutpost } from "directives/colony/outpost";
+import { LogisticsNetwork } from "logistics/LogisticsNetwork";
+import { Roles } from "creepSetup/setup";
+import { bodyCost } from "creepSetup/CreepSetup";
+import { DirectiveBootstrap } from "directives/situational/bootstrap";
+import settings from 'settings';
 
 // export const DIRECTIVE_CHECK_FREQUENCY = 2;
 
@@ -171,6 +176,7 @@ export class CEO implements ICeo {
 
         // Register cleanup requests to logistics network
         for (const brain of getAllBrains()) {
+            this.registerLogisticsRequest(brain);
         }
     }
 
@@ -178,7 +184,6 @@ export class CEO implements ICeo {
 
     run(): void {
         for (const directive of this.directives) {
-            log.alert(`attempting to run directive: ${directive.print}`);
             directive.run();
         }
         for (const manager of this.managers) {
@@ -196,17 +201,114 @@ export class CEO implements ICeo {
     }
 
     private placeDirectives() {
+        log.debug(`Placing Directives`);
         const allBrains = getAllBrains();
-        if(LATEST_BUILD_TICK == Game.time) {
+        if (LATEST_BUILD_TICK == Game.time) {
             _.forEach(allBrains, brain => this.placeHarvestingDirectives(brain));
         }
+
+        _.forEach(allBrains, brain => this.handleBootStrapping(brain));
+
+        _.forEach(allBrains, brain => {
+            if(Game.time % CEO.settings.outpostCheckFrequency == 2 * brain.id) {
+                this.handleNewOutpost(brain);
+            }
+        })
     }
 
+    private handleNewOutpost(brain: Brain) {
+        const numSources = _.sum(brain.roomNames, roomName => Memory.rooms[roomName] && Memory.rooms[roomName][RMEM.SOURCES] ? Memory.rooms[roomName][RMEM.SOURCES]!.length: 0);
+        const numRemotes = numSources - brain.room.sources.length;
+        if (numRemotes < Brain.settings.remoteSourcesByLevel[brain.level]) {
+
+			const possibleOutposts = this.computePossibleOutposts(brain);
+
+			const origin = brain.pos;
+			const bestOutpost = minBy(possibleOutposts, outpostName => {
+				const sourceInfo = RoomIntel.getSourceInfo(outpostName);
+				if (!sourceInfo) return false;
+				const sourceDistances = _.map(sourceInfo, src => Pathing.distance(origin, src.pos));
+				if (_.any(sourceDistances, dist => dist == undefined || dist > Brain.settings.maxSourceDistance)) {
+					return false;
+				}
+				return _.sum(sourceDistances) / sourceDistances.length;
+			});
+
+			if (bestOutpost) {
+				const pos = Pathing.findPathablePosition(bestOutpost);
+				log.info(`Brain ${brain.room.print} now remote mining from ${pos.print}`);
+				DirectiveOutpost.createIfNotPresent(pos, 'room', {memory: {[MEM.BRAIN]: brain.name}});
+			}
+		}
+    }
+
+    private computePossibleOutposts(brain: Brain, depth = 3): string[] {
+		return _.filter(Cartographer.findRoomsInRange(brain.room.name, depth), roomName => {
+			if (Cartographer.roomType(roomName) != ROOMTYPE_CONTROLLER) {
+				return false;
+			}
+			const alreadyAnOutpost = _.any(BigBrain.cache.outpostFlags,
+										   flag => (flag.memory.setPos || flag.pos).roomName == roomName);
+			const alreadyAColony = !!BigBrain.brains[roomName];
+			if (alreadyAColony || alreadyAnOutpost) {
+				return false;
+			}
+			const alreadyOwned = RoomIntel.roomOwnedBy(roomName);
+			const alreadyReserved = RoomIntel.roomReservedBy(roomName);
+			const isBlocked = Game.flags[roomName + '-Block'] != null; // TODO: this is ugly
+			if (isBlocked) {
+				// Game.notify("Room " + roomName + " is blocked, not expanding there.");
+			}
+			const disregardReservations = !onPublicServer() || settings.MY_USERNAME == 'Amarantz';
+			if (alreadyOwned || (alreadyReserved && !disregardReservations) || isBlocked) {
+				return false;
+			}
+			const neighboringRooms = _.values(Game.map.describeExits(roomName)) as string[];
+			const isReachableFromColony = _.any(neighboringRooms, r => brain.roomNames.includes(r));
+			return isReachableFromColony && Game.map.isRoomAvailable(roomName);
+		});
+	}
+
     private placeHarvestingDirectives(brain: Brain) {
-        for(const source of brain.sources) {
+        for (const source of brain.sources) {
             DirectiveHarvest.createIfNotPresent(source.pos, 'pos');
         }
     }
+
+    private registerLogisticsRequest(brain: Brain): void {
+        for (const room of brain.rooms) {
+            for (const resourceType in room.drops) {
+                for (const drop of room.drops[resourceType]) {
+                    if (drop.amount > LogisticsNetwork.settings.droppedEnergyThreshold || drop.resourceType != RESOURCE_ENERGY) {
+                        brain.logisticsNetwork.requestOutput(drop)
+                    }
+                }
+            }
+        }
+        for (const tombstone of brain.tombstones) {
+            if (tombstone.store.getUsedCapacity(RESOURCE_ENERGY) > LogisticsNetwork.settings.droppedEnergyThreshold || tombstone.store.getUsedCapacity() > tombstone.store.energy) {
+                if (brain.bunker && tombstone.pos.isEqualTo(brain.bunker.anchor)) continue;
+                brain.logisticsNetwork.requestOutput(tombstone, { resourceType: 'all' });
+            }
+        }
+    }
+
+    private handleBootStrapping(brain: Brain) {
+        if (!brain.state.isIncubating) {
+            const noQueen = brain.getCreepsByRole(Roles.queen).length == 0;
+            if (noQueen && brain.spawner && !brain.spawnGroup) {
+                const setup = brain.spawner.manager.queenSetup;
+                const energyToMakeQueen = bodyCost(setup.generateBody(brain.room.energyCapacityAvailable));
+                if (brain.room.energyAvailable < energyToMakeQueen || hasJustSpawned()) {
+                    const result = DirectiveBootstrap.createIfNotPresent(brain.spawner.pos, 'pos');
+                    if (typeof result == 'string' || result == OK) { // successfully made flag
+                        brain.spawner.settings.suppressSpawning = true;
+                    }
+                }
+            }
+        }
+    }
+
 
     getCreepReport(brain: Brain): string[][] {
         const spoopyBugFix = false;
@@ -232,8 +334,6 @@ export class CEO implements ICeo {
                 }
             }
         }
-
-
         // let padLength = _.max(_.map(_.keys(roleOccupancy), str => str.length)) + 2;
         const roledata: string[][] = [];
         for (const role in roleOccupancy) {

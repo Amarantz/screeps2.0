@@ -1,4 +1,6 @@
-import {profile} from '../../profiler';
+// Invalid task assigned if instantiation fails.
+
+import { profile } from "profiler";
 import {Task} from '../Task';
 
 const invalidTarget = {
