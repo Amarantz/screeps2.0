@@ -70,7 +70,6 @@ export class DirectiveHarvest extends Directive {
 					   ManagerPriority.remoteSKRoom.mine : ManagerPriority.remoteRoom.mine;
 		}
 		this.managers.mine = new MiningManager(this, priority);
-		log.debug(`Manager highered: ${this.managers.mine.print}`);
 	}
 
 	init() {
