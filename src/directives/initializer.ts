@@ -5,6 +5,7 @@ import { DirectiveOutpostSK } from "./colony/outpostSK";
 import { DirectiveBootstrap } from "./situational/bootstrap";
 import { DirectiveDismantle } from "./targeting/dismantle";
 import { DirectiveClearRoom } from "./colony/clearRoom";
+import { DirectiveMineral } from "./resource/mineral";
 
 /**
  * This is the initializer for directives, which maps flags by their color code to the corresponding directive
@@ -16,6 +17,8 @@ export function DirectiveWrapper(flag: Flag): Directive | undefined {
             switch(flag.secondaryColor) {
                 case COLOR_YELLOW:
                     return new DirectiveHarvest(flag);
+                case COLOR_CYAN:
+                    return new DirectiveMineral(flag);
             }
             break;
         case COLOR_PURPLE:

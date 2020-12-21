@@ -6,7 +6,7 @@ import { log } from "console/log";
 export class DirectiveMineral extends Directive {
     static directiveName = 'extract';
     static color = COLOR_YELLOW;
-    static secondaryColor = COLOR_YELLOW;
+    static secondaryColor = COLOR_CYAN;
 
     managers: {
         mineral: ExtractorManager;
