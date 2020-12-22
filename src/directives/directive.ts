@@ -449,4 +449,8 @@ export abstract class Directive {
     abstract HigherManager(): void;
     abstract init(): void;
     abstract run(): void;
+
+    visuals(): void {
+
+	}
 }

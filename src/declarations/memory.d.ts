@@ -118,6 +118,7 @@ interface Memory {
   screepsProfiler?: any;
   settings: {
     signature: string,
+    enableVisuals: boolean;
     log: any,
     resourceCollectionMode: resourceCollectionMode,
     allies: string[],

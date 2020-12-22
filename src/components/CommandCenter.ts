@@ -8,6 +8,7 @@ import { log } from "console/log";
 import { Cartographer } from "utils/Cartographer";
 import { $ } from '../caching/GlobalCache';
 import { CommandCenterOverlord } from "managers/core/manager";
+import { Visualizer } from "visuals/Visualizer";
 
 export const MAX_OBSERVE_DISTANCE = 4;
 
@@ -227,25 +228,25 @@ export class CommandCenter extends Component {
         this.runPowerSpawn();
     }
 
-    // visuals(coord: Coord): Coord {
-    // 	let {x, y} = coord;
-    // 	const height = this.storage && this.terminal ? 2 : 1;
-    // 	const titleCoords = Visualizer.section(`${this.brain.name} Command Center`,
-    // 										   {x, y, roomName: this.room.name}, 9.5, height + .1);
-    // 	const boxX = titleCoords.x;
-    // 	y = titleCoords.y + 0.25;
-    // 	if (this.storage) {
-    // 		Visualizer.text('Storage', {x: boxX, y: y, roomName: this.room.name});
-    // 		Visualizer.barGraph(_.sum(this.storage.store) / this.storage.storeCapacity,
-    // 							{x: boxX + 4, y: y, roomName: this.room.name}, 5);
-    // 		y += 1;
-    // 	}
-    // 	if (this.terminal) {
-    // 		Visualizer.text('Terminal', {x: boxX, y: y, roomName: this.room.name});
-    // 		Visualizer.barGraph(_.sum(this.terminal.store) / this.terminal.storeCapacity,
-    // 							{x: boxX + 4, y: y, roomName: this.room.name}, 5);
-    // 		y += 1;
-    // 	}
-    // 	return {x: x, y: y + .25};
-    // }
+	visuals(coord: Coord): Coord {
+		let {x, y} = coord;
+		const height = this.storage && this.terminal ? 2 : 1;
+		const titleCoords = Visualizer.section(`${this.brain.name} Command Center`,
+											   {x, y, roomName: this.room.name}, 9.5, height + .1);
+		const boxX = titleCoords.x;
+		y = titleCoords.y + 0.25;
+		if (this.storage) {
+			Visualizer.text('Storage', {x: boxX, y: y, roomName: this.room.name});
+			Visualizer.barGraph(this.storage.store.getUsedCapacity() / this.storage.storeCapacity,
+								{x: boxX + 4, y: y, roomName: this.room.name}, 5);
+			y += 1;
+		}
+		if (this.terminal) {
+			Visualizer.text('Terminal', {x: boxX, y: y, roomName: this.room.name});
+			Visualizer.barGraph(this.terminal.store.getUsedCapacity() / this.terminal.storeCapacity,
+								{x: boxX + 4, y: y, roomName: this.room.name}, 5);
+			y += 1;
+		}
+		return {x: x, y: y + .25};
+	}
 }

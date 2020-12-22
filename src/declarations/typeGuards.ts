@@ -4,6 +4,8 @@
 import {AnyBot} from '../bot/AnyBot';
 import { Bot } from '../bot/Bot';
 import { PowerBot } from 'bot/PowerBot';
+import { CombatBot } from 'bot/CombatBot';
+import { NeuralBot } from 'bot/NeuralBot';
 
 // export interface EnergyStructure extends Structure {
 // 	energy: number;
@@ -71,10 +73,10 @@ export function isPowerBot(creep: AnyCreep | AnyBot): creep is PowerBot {
 	return (<PowerBot>creep).isPowerBot || false;
 }
 
-// export function isCombatZerg(zerg: AnyCreep | AnyZerg): zerg is CombatZerg {
-// 	return (<CombatZerg>zerg).isCombatZerg || false;
-// }
+export function isCombatBot(bot: AnyCreep | AnyBot): bot is CombatBot {
+	return (<CombatBot>bot).isCombatBot || false;
+}
 
-// export function isNeuralZerg(zerg: AnyCreep | AnyZerg): zerg is NeuralZerg {
-// 	return (<NeuralZerg>zerg).isNeuralZerg || false;
-// }
+export function isNeuralBot(bot: AnyCreep | AnyBot): bot is NeuralBot {
+	return (<NeuralBot>bot).isNeuralBot || false;
+}

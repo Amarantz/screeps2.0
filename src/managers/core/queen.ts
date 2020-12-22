@@ -37,7 +37,7 @@ export class QueenManager extends Manager {
 	}
 
 	init() {
-		const amount = 1;
+		const amount = 2;
 		const prespawn = this.spawner.spawns.length <= 1 ? 100 : DEFAULT_PRESPAWN;
 		this.wishlist(amount, this.queenSetup, {prespawn: prespawn});
 	}

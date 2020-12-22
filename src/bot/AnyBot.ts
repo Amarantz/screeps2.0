@@ -427,6 +427,10 @@ export abstract class AnyBot {
 			}
 		}
 
+		if ( this.room.isSafe ) {
+			return false;
+		}
+
 		if (!this.room.isSafe || this.hits < this.hitsMax) {
 
 			if (Cartographer.roomType(this.room.name) == ROOMTYPE_SOURCEKEEPER) {

@@ -1,5 +1,5 @@
 import { profile } from "../profiler";
-import { MoveOptions } from "./Movement";
+import { MoveOptions, SwarmMoveOptions } from "./Movement";
 import { $ } from '../caching/GlobalCache';
 import { Cartographer, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY } from "utils/Cartographer";
 import { log } from "console/log";
@@ -366,27 +366,27 @@ export class Pathing {
 		}
 	}
 
-	// /**
-	//  * Find a path from origin to destination
-	//  */
-	// static findSwarmPath(origin: RoomPosition, destination: RoomPosition, width: number, height: number,
-	// 					 options: PathOptions = {}): PathFinderPath {
-	// 	_.defaults(options, {
-	// 		blockCreeps: false,
-	// 		maxOps     : 2 * DEFAULT_MAXOPS,
-	// 		range      : 1,
-	// 	});
-	// 	// Make copies of the destination offset for where anchor could be
-	// 	const destinations = this.getPosWindow(destination, -width, -height);
-	// 	const callback = (roomName: string) => this.swarmRoomCallback(roomName, width, height, options);
-	// 	return PathFinder.search(origin, _.map(destinations, pos => ({pos: pos, range: options.range!})), {
-	// 		maxOps      : options.maxOps,
-	// 		maxRooms    : options.maxRooms,
-	// 		plainCost   : 1,
-	// 		swampCost   : 5,
-	// 		roomCallback: callback,
-	// 	});
-	// }
+	/**
+	 * Find a path from origin to destination
+	 */
+	static findSwarmPath(origin: RoomPosition, destination: RoomPosition, width: number, height: number,
+						 options: PathOptions = {}): PathFinderPath {
+		_.defaults(options, {
+			blockCreeps: false,
+			maxOps     : 2 * DEFAULT_MAXOPS,
+			range      : 1,
+		});
+		// Make copies of the destination offset for where anchor could be
+		const destinations = this.getPosWindow(destination, -width, -height);
+		const callback = (roomName: string) => this.swarmRoomCallback(roomName, width, height, options);
+		return PathFinder.search(origin, _.map(destinations, pos => ({pos: pos, range: options.range!})), {
+			maxOps      : options.maxOps,
+			maxRooms    : options.maxRooms,
+			plainCost   : 1,
+			swampCost   : 5,
+			roomCallback: callback,
+		});
+	}
 
 	/**
 	 * Get a window of offset RoomPositions from an anchor position and a window width and height
@@ -454,24 +454,24 @@ export class Pathing {
 
 	}
 
-	// static swarmRoomCallback(roomName: string, width: number, height: number,
-	// 						 opts: SwarmMoveOptions): CostMatrix {
-	// 	const matrixOpts: Partial<MatrixOptions> = {
-	// 		explicitTerrainCosts: true,
-	// 		ignoreStructures    : opts.ignoreStructures,
-	// 		swarmWidth          : width,
-	// 		swarmHeight         : height,
-	// 	};
-	// 	const volatileMatrixOpts: VolatileMatrixOptions = {};
-	// 	if (opts.blockCreeps) volatileMatrixOpts.blockCreeps = opts.blockCreeps;
+	static swarmRoomCallback(roomName: string, width: number, height: number,
+							 opts: SwarmMoveOptions): CostMatrix {
+		const matrixOpts: Partial<MatrixOptions> = {
+			explicitTerrainCosts: true,
+			ignoreStructures    : opts.ignoreStructures,
+			swarmWidth          : width,
+			swarmHeight         : height,
+		};
+		const volatileMatrixOpts: VolatileMatrixOptions = {};
+		if (opts.blockCreeps) volatileMatrixOpts.blockCreeps = opts.blockCreeps;
 
-	// 	const matrix = MatrixLib.getMatrix(roomName, matrixOpts, volatileMatrixOpts);
+		const matrix = MatrixLib.getMatrix(roomName, matrixOpts, volatileMatrixOpts);
 
-	// 	if (opts.displayCostMatrix) {
-	// 		Visualizer.displayCostMatrix(matrix, roomName);
-	// 	}
-	// 	return matrix;
-	// }
+		if (opts.displayCostMatrix) {
+			// Visualizer.displayCostMatrix(matrix, roomName);
+		}
+		return matrix;
+	}
 
 	private static kitingRoomCallback(roomName: string): CostMatrix | boolean {
 		const room = Game.rooms[roomName];
@@ -543,8 +543,8 @@ export class Pathing {
 
 	// Cost matrix retrieval functions =================================================================================
 
-	// /**
-	//  * Get a cloned copy of the cost matrix for a room with specified options
+	/**
+	 * Get a cloned copy of the cost matrix for a room with specified options
 	//  */
 	// static getCostMatrix(room: Room, options: PathOptions, clone = true): CostMatrix {
 	// 	let matrix: CostMatrix;
@@ -619,7 +619,7 @@ export class Pathing {
 	// 			const portals = roomInfo.portals;
 	// 			_.forEach(portals, portal => matrix!.set(portal.pos.x, portal.pos.y, PORTAL_COST));
 	// 			const skLairs = roomInfo.skLairs;
-	//
+
 	// 			if (skLairs.length > 0) {
 	// 				// The source keepers usually hang out by the closest mineral or source but sometimes on lair
 	// 				const avoidRange = 5;
@@ -714,8 +714,8 @@ export class Pathing {
 	// 		return matrix;
 	// 	});
 	// }
-	//
-	//
+
+
 	// /**
 	//  * Default matrix for a room, setting impassable structures and constructionSites to impassible, ignoring roads
 	//  */
@@ -741,7 +741,7 @@ export class Pathing {
 	// 		return matrix;
 	// 	});
 	// }
-	//
+
 	// /**
 	//  * Avoids creeps in a room
 	//  */

@@ -43,6 +43,8 @@ type rechargeObjectType =
   | Tombstone
   | Resource;
 
+  type InvaderStructuresConstant = STRUCTURE_INVADER_CORE;
+
 interface Room {
 	print: string;
 

@@ -6,7 +6,7 @@ import { ManagerPriority } from "priorities/priorities_managers";
 import { $ } from "caching/GlobalCache";
 import { Pathing } from "movement/Pathing";
 import { log } from "console/log";
-import { Setups } from "creepSetup/setup";
+import { Setups, Roles } from "creepSetup/setup";
 import { dropTaskName } from "tasks/instances/drop";
 
 const BUILD_OUTPUT_FREQUENCY = 15;
@@ -21,7 +21,7 @@ export class ExtractorManager extends Manager {
     harvesters: Bot[];
 
     static settings = {
-        maxHavesters: 2
+        maxHarvesters: 2
     }
 
     constructor(directive: Directive, priority: number) {
@@ -29,6 +29,7 @@ export class ExtractorManager extends Manager {
 
         this.directive = directive;
         this.priority = this.priority + this.outpostIndex * ManagerPriority.remoteSKRoom.roomIncrement;
+        this.harvesters = this.bots(Roles.harvester)
         this.populateStructures();
     }
 
@@ -78,7 +79,7 @@ export class ExtractorManager extends Manager {
 
     init(): void {
         this.registerOutputRequest();
-        const amount = this.mineral && this.mineral.mineralAmount > 0 && this.extractor && this.container ? Math.min(this.mineral.pos.availableNeighbors().length, ExtractorManager.settings.maxHavesters) : 0;
+        const amount = this.mineral && this.mineral.mineralAmount > 0 && this.extractor && this.container ? Math.min(this.mineral.pos.availableNeighbors().length, ExtractorManager.settings.maxHarvesters) : 0;
         this.wishlist(amount, Setups.worker.extractor);
     }
     private buildOutputIfNeeded() {

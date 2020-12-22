@@ -6,6 +6,8 @@ import { AttackStructureScores, AttackStructurePriorities } from "priorities/pri
 import settings from "settings";
 import { Pathing } from "movement/Pathing";
 import { log } from "console/log";
+import { MatrixLib } from "matrix/MatrixLib";
+import { Swarm } from "bot/Swarm";
 
 @profile
 export class CombatTargeting {
@@ -242,107 +244,108 @@ export class CombatTargeting {
         return;
     }
 
-    // static findBestSwarmStructureTarget(swarm: Swarm, roomName: string,
-    //     randomness = 0, displayCostMatrix = false): Structure | undefined {
-    //     const room = Game.rooms[roomName];
-    //     // Don't accidentally destroy your own shit
-    //     if (!room || room.my || room.reservedByMe) {
-    //         return;
-    //     }
-    //     if (swarm.anchor.roomName != roomName) {
-    //         log.warning(`Swarm is not in target room!`);
-    //         return;
-    //     }
+    static findBestSwarmStructureTarget(swarm: Swarm, roomName: string,
+        randomness = 0, displayCostMatrix = false): Structure | undefined {
+        const room = Game.rooms[roomName];
+        // Don't accidentally destroy your own shit
+        if (!room || room.my || room.reservedByMe) {
+            return;
+        }
+        if (swarm.anchor.roomName != roomName) {
+            log.warning(`Swarm is not in target room!`);
+            return;
+        }
 
-    //     // // Look for any unprotected structures
-    //     // let unprotectedRepairables = _.filter(room.repairables, s => {
-    //     // 	let rampart = s.pos.lookForStructure(STRUCTURE_RAMPART);
-    //     // 	return !rampart || rampart.hits < 10000;
-    //     // });
-    //     // let approach = _.map(unprotectedRepairables, structure => {
-    //     // 	return {pos: structure.pos, range: 0};
-    //     // }) as PathFinderGoal[];
-    //     // if (room.barriers.length == 0 && unprotectedRepairables.length == 0) return; // if there's nothing in the room
-    //     //
-    //     // // Try to find a reachable unprotected structure
-    //     // if (approach.length > 0) {
-    //     // 	let ret = PathFinder.search(swarm.anchor, approach, {
-    //     // 		maxRooms    : 1,
-    //     // 		maxOps      : 2000,
-    //     // 		roomCallback: roomName => {
-    //     // 			if (roomName != room.name) return false;
-    //     // 			let matrix = Pathing.getSwarmTerrainMatrix(roomName, swarm.width, swarm.height).clone();
-    //     // 			for (let barrier of room.barriers) {
-    //     // 				let setPositions = Pathing.getPosWindow(barrier.pos, -swarm.width, -swarm.height);
-    //     // 				for (let pos of setPositions) {
-    //     // 					matrix.set(pos.x, pos.y, 0xff);
-    //     // 				}
-    //     // 			}
-    //     // 			return matrix;
-    //     // 		},
-    //     // 	});
-    //     // 	let targetPos = _.last(ret.path);
-    //     // 	if (!ret.incomplete && targetPos) {
-    //     // 		let targetStructure = _.first(_.filter(targetPos.lookFor(LOOK_STRUCTURES), s => {
-    //     // 			return s.structureType != STRUCTURE_ROAD && s.structureType != STRUCTURE_CONTAINER;
-    //     // 		}));
-    //     // 		if (targetStructure) {
-    //     // 			log.debug(`Found unprotected structure target @ ${targetPos.print}`);
-    //     // 			return targetStructure;
-    //     // 		}
-    //     // 	}
-    //     // }
+        // // Look for any unprotected structures
+        // let unprotectedRepairables = _.filter(room.repairables, s => {
+        // 	let rampart = s.pos.lookForStructure(STRUCTURE_RAMPART);
+        // 	return !rampart || rampart.hits < 10000;
+        // });
+        // let approach = _.map(unprotectedRepairables, structure => {
+        // 	return {pos: structure.pos, range: 0};
+        // }) as PathFinderGoal[];
+        // if (room.barriers.length == 0 && unprotectedRepairables.length == 0) return; // if there's nothing in the room
+        //
+        // // Try to find a reachable unprotected structure
+        // if (approach.length > 0) {
+        // 	let ret = PathFinder.search(swarm.anchor, approach, {
+        // 		maxRooms    : 1,
+        // 		maxOps      : 2000,
+        // 		roomCallback: roomName => {
+        // 			if (roomName != room.name) return false;
+        // 			let matrix = Pathing.getSwarmTerrainMatrix(roomName, swarm.width, swarm.height).clone();
+        // 			for (let barrier of room.barriers) {
+        // 				let setPositions = Pathing.getPosWindow(barrier.pos, -swarm.width, -swarm.height);
+        // 				for (let pos of setPositions) {
+        // 					matrix.set(pos.x, pos.y, 0xff);
+        // 				}
+        // 			}
+        // 			return matrix;
+        // 		},
+        // 	});
+        // 	let targetPos = _.last(ret.path);
+        // 	if (!ret.incomplete && targetPos) {
+        // 		let targetStructure = _.first(_.filter(targetPos.lookFor(LOOK_STRUCTURES), s => {
+        // 			return s.structureType != STRUCTURE_ROAD && s.structureType != STRUCTURE_CONTAINER;
+        // 		}));
+        // 		if (targetStructure) {
+        // 			log.debug(`Found unprotected structure target @ ${targetPos.print}`);
+        // 			return targetStructure;
+        // 		}
+        // 	}
+        // }
 
-    //     // Determine a "siege anchor" for what you eventually want to destroy
-    //     let targets: Structure[] = room.spawns;
-    //     if (targets.length == 0) targets = room.towers;
-    //     if (targets.length == 0) targets = room.repairables;
-    //     if (targets.length == 0) targets = room.barriers;
-    //     if (targets.length == 0) targets = room.structures;
-    //     if (targets.length == 0) return;
+        // Determine a "siege anchor" for what you eventually want to destroy
+        let targets: Structure[] = room.spawns;
+        if (targets.length == 0) targets = room.towers;
+        if (targets.length == 0) targets = room.repairables;
+        if (targets.length == 0) targets = room.barriers;
+        if (targets.length == 0) targets = room.structures;
+        if (targets.length == 0) return;
 
-    //     // Recalculate approach targets
-    //     const approach = _.map(targets, s => { // TODO: might need to Pathing.getPosWindow() this
-    //         return { pos: s.pos, range: 0 };
-    //     });
+        // Recalculate approach targets
+        const approach = _.map(targets, s => { // TODO: might need to Pathing.getPosWindow() this
+            return { pos: s.pos, range: 0 };
+        });
 
-    //     const maxWallHits = _.max(_.map(room.barriers, b => b.hits)) || 0;
-    //     // Compute path with wall position costs weighted by fraction of highest wall
-    //     const ret = PathFinder.search(swarm.anchor, approach, {
-    //         maxRooms: 1,
-    //         plainCost: 1,
-    //         swampCost: 2,
-    //         roomCallback: rn => {
-    //             if (rn != roomName) return false;
+        const maxWallHits = _.max(_.map(room.barriers, b => b.hits)) || 0;
+        // Compute path with wall position costs weighted by fraction of highest wall
+        const ret = PathFinder.search(swarm.anchor, approach, {
+            maxRooms: 1,
+            plainCost: 1,
+            swampCost: 2,
+            roomCallback: rn => {
+                if (rn != roomName) return false;
 
-    //             const matrix = MatrixLib.getSwarmTerrainMatrix(roomName, { plainCost: 1, swampCost: 5 },
-    //                 swarm.width, swarm.height);
-    //             for (const barrier of room.barriers) {
-    //                 const randomFactor = Math.min(Math.round(randomness * Math.random()), 100);
-    //                 const cost = 100 + Math.round((barrier.hits / maxWallHits) * 100) + randomFactor;
-    //                 MatrixLib.setToMaxCostAfterMaxPooling(matrix, [barrier], swarm.width, swarm.height, cost);
-    //             }
-    //             if (displayCostMatrix) {
-    //                 Visualizer.displayCostMatrix(matrix, roomName);
-    //             }
-    //             return matrix;
-    //         },
-    //     });
+                const matrix = MatrixLib.getSwarmTerrainMatrix(roomName, { plainCost: 1, swampCost: 5 },
+                    swarm.width, swarm.height);
+                for (const barrier of room.barriers) {
+                    const randomFactor = Math.min(Math.round(randomness * Math.random()), 100);
+                    const cost = 100 + Math.round((barrier.hits / maxWallHits) * 100) + randomFactor;
+                    MatrixLib.setToMaxCostAfterMaxPooling(matrix, [barrier], swarm.width, swarm.height, cost);
+                }
+                if (displayCostMatrix) {
+                    // Visualizer.displayCostMatrix(matrix, roomName);
+                }
+                return matrix;
+            },
+        });
 
-    //     // Target the first non-road, non-container structure you find along the path or neighboring positions
-    //     for (const pos of ret.path) {
-    //         log.debug(`Searching path ${pos.print}...`);
-    //         const searchPositions = Pathing.getPosWindow(pos, swarm.width, swarm.height); // not -1*width
-    //         for (const searchPos of searchPositions) {
-    //             const targetStructure = _.first(_.filter(searchPos.lookFor(LOOK_STRUCTURES), s => {
-    //                 return s.structureType != STRUCTURE_ROAD && s.structureType != STRUCTURE_CONTAINER;
-    //             }));
-    //             if (targetStructure) {
-    //                 log.debug(`Targeting structure @ ${targetStructure.pos.print}`);
-    //                 return targetStructure;
-    //             }
-    //         }
-    //     }
-    // }
+        // Target the first non-road, non-container structure you find along the path or neighboring positions
+        for (const pos of ret.path) {
+            log.debug(`Searching path ${pos.print}...`);
+            const searchPositions = Pathing.getPosWindow(pos, swarm.width, swarm.height); // not -1*width
+            for (const searchPos of searchPositions) {
+                const targetStructure = _.first(_.filter(searchPos.lookFor(LOOK_STRUCTURES), s => {
+                    return s.structureType != STRUCTURE_ROAD && s.structureType != STRUCTURE_CONTAINER;
+                }));
+                if (targetStructure) {
+                    log.debug(`Targeting structure @ ${targetStructure.pos.print}`);
+                    return targetStructure;
+                }
+            }
+        }
+        return;
+    }
 
 }

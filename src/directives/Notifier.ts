@@ -1,5 +1,6 @@
 import { profile } from "../profiler";
 import { printRoomName } from '../utils/utils';
+import { Visualizer } from "visuals/Visualizer";
 
 export enum NotifierPriority {
     Critical,
@@ -47,8 +48,20 @@ export class Notifier implements INotifier {
         console.log(`${printRoomName(roomName)}:${message}`)
     }
 
-    generateNotificationsList(links: boolean): string[] {
-        throw new Error("Method not implemented.");
+    generateNotificationsList(links = false): string[] {
+        const sortedAlerts = _.sortBy(this.alerts, alert => alert.priority);
+		return _.map(sortedAlerts, alert => {
+			if (alert.roomName) {
+				return (links ? printRoomName(alert.roomName) : alert.roomName) + ': ' + alert.message;
+			} else {
+				return alert.message;
+			}
+		});
     }
+
+    visuals(): void {
+		const notificationMessages = this.generateNotificationsList();
+		Visualizer.drawNotifications(notificationMessages);
+	}
 
 }

@@ -1,6 +1,6 @@
 import { getAllBrains, Brain } from "Brian";
 import { log } from "console/log";
-import { Cartographer, ROOMTYPE_CONTROLLER } from "utils/Cartographer";
+import { Cartographer, ROOMTYPE_CONTROLLER, ROOMTYPE_SOURCEKEEPER } from "utils/Cartographer";
 import { onPublicServer, canClaimAnotherRoom, getAllRooms, hasJustSpawned, minBy } from "utils/utils";
 import { RoomIntel } from "intel/RoomIntel";
 import { DirectiveHarvest } from "directives/resource/harvest";
@@ -19,6 +19,8 @@ import { bodyCost } from "creepSetup/CreepSetup";
 import { DirectiveBootstrap } from "directives/situational/bootstrap";
 import settings from 'settings';
 import { DirectiveMineral } from "directives/resource/mineral";
+import { DirectiveOutpostDefence } from "directives/defense/outpostDefence";
+import { DirectiveGuard } from "directives/defense/guard";
 
 // export const DIRECTIVE_CHECK_FREQUENCY = 2;
 
@@ -214,6 +216,8 @@ export class CEO implements ICeo {
                 this.handleNewOutpost(brain);
             }
         })
+
+        _.forEach(allBrains, brain => this.handleOutpostDefense(brain));
     }
 
     private handleNewOutpost(brain: Brain) {
@@ -313,6 +317,26 @@ export class CEO implements ICeo {
         }
     }
 
+    private handleOutpostDefense(brain: Brain):void {
+        for(const room of brain.outposts) {
+            if(!brain.isRoomActive(room.name)) {
+                continue;
+            }
+
+            if(room.dangerousPlayerHostiles.length > 0) {
+                DirectiveOutpostDefence.createIfNotPresent(Pathing.findPathablePosition(room.name), 'room');
+            } else if (Cartographer.roomType(room.name) != ROOMTYPE_SOURCEKEEPER) {
+                if(room.invaders.length > 0 || (room.invaderCore && room.invaderCore.level == 0)) {
+                    const defenseDirectives = [...DirectiveGuard.find(room.flags), ...DirectiveOutpostDefence.find(room.flags)];
+                    if(defenseDirectives.length  == 0) {
+                        const placePos = (room.invaders[0] || room.invaderCore).pos;
+                        DirectiveGuard.create(placePos);
+                    }
+                }
+            }
+        }
+    }
+
 
     getCreepReport(brain: Brain): string[][] {
         const spoopyBugFix = false;
@@ -349,5 +373,15 @@ export class CEO implements ICeo {
             roledata.push([role, `${current}/${needed}`]);
         }
         return roledata;
+    }
+
+    visuals(): void {
+		for (const directive of this.directives) {
+			directive.visuals();
+		}
+		for (const manager of this.managers) {
+			manager.visuals();
+		}
+        this.notifier.visuals();
     }
 }

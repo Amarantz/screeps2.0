@@ -170,6 +170,7 @@ export class Mem {
       settings: {
         signature: SETTINGS.SIGNATURE,
         log: {},
+        enableVisuals: false,
         resourceCollectionMode: 0,
         allies: [],
         powerCollection: {

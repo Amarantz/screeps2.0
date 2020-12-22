@@ -28,6 +28,8 @@ import { Bot } from 'bot/Bot';
 import { RoomPlanner } from 'roomPlanner/RoomPlanner';
 import { USE_TRY_CATCH } from 'settings';
 import { Oblisk } from 'components/Oblisk';
+import { EngineeringBay } from 'components/EngineeringBay';
+import { Visualizer } from 'visuals/Visualizer';
 
 export enum brainStage {
     Infant = 0,		// No storage and no incubator
@@ -188,6 +190,7 @@ export class Brain {
         maxSourceDistance: 100
     };
     towersComponent: Oblisk;
+    engineeringBay: EngineeringBay;
 
     constructor(id: number, roomName: string, outpost: string[]) {
         this.room = Game.rooms[roomName];
@@ -366,11 +369,15 @@ export class Brain {
             this.spawner = new Spawner(this, this.spawns[0]);
         }
 
-        if(this.towers[0]) {
-            this.towersComponent = new Oblisk(this, this.towers[0])
+        if (this.terminal && _.filter(this.labs, lab => _.all(this.labs, otherLab => lab.pos.inRangeTo(otherLab,2))).length >= 3){
+            this.engineeringBay = new EngineeringBay(this, this.terminal!);
         }
 
         this.upgradeSite = new UpgradeSite(this, this.controller);
+
+        if(this.towers[0]) {
+            this.towersComponent = new Oblisk(this, this.towers[0])
+        }
 
         this.components.reverse();
     }
@@ -493,4 +500,27 @@ export class Brain {
             Stats.log(`brains.${this.name}.avgBarrierHits`, avgBarrierHits);
         }
     }
+
+    private drawCreepReport(coord: Coord): Coord {
+		let {x, y} = coord;
+		const roledata = BigBrain.CEO.getCreepReport(this);
+		const tablePos = new RoomPosition(x, y, this.room.name);
+		y = Visualizer.infoBox(`${this.name} Creeps`, roledata, tablePos, 7);
+		return {x, y};
+	}
+
+    visuals(): void {
+		let x = 1;
+		let y = 1;
+		let coord: Coord;
+		coord = this.drawCreepReport({x, y});
+		x = coord.x;
+		y = coord.y;
+
+		for (const component of _.compact([this.spawner, this.commandCenter, this.engineeringBay])) {
+			coord = component!.visuals({x, y});
+			x = coord.x;
+			y = coord.y;
+		}
+	}
 }

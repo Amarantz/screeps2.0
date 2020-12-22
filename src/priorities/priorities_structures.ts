@@ -34,7 +34,7 @@ export const FortifyPriorities: BuildableStructureConstant[] = [
 /**
  * Prioritized list of what order enemy structures should be attacked in
  */
-export const AttackStructurePriorities: BuildableStructureConstant[] = [
+export const AttackStructurePriorities: (BuildableStructureConstant | InvaderStructuresConstant)[] = [
 	STRUCTURE_SPAWN,
 	STRUCTURE_TOWER,
 	STRUCTURE_EXTENSION,
@@ -42,7 +42,8 @@ export const AttackStructurePriorities: BuildableStructureConstant[] = [
 	STRUCTURE_LAB,
 	STRUCTURE_NUKER,
 	STRUCTURE_OBSERVER,
-	STRUCTURE_EXTRACTOR,
+    STRUCTURE_EXTRACTOR,
+    STRUCTURE_INVADER_CORE,
 	STRUCTURE_POWER_SPAWN,
 	STRUCTURE_CONTAINER,
 	STRUCTURE_ROAD,

@@ -23,7 +23,7 @@ import { TerminalNetworkV2 } from "logistics/TerminalNetwork";
 import { TraderJoe } from "logistics/TradeNetwork";
 
 
-const profilerRooms: {[roomName:string]: boolean} = {};
+const profilerRooms: { [roomName: string]: boolean } = {};
 @profile
 export class BigBrain implements IBigBrain {
   public expiration: number;
@@ -78,57 +78,57 @@ export class BigBrain implements IBigBrain {
   }
 
   private buildDirectives(spawn = false) {
-    for(const name in Game.flags) {
-      if(this.directives[name]) {
+    for (const name in Game.flags) {
+      if (this.directives[name]) {
         continue;
       }
       const brain = Game.flags[name].memory[MEM.BRAIN];
-      if(brain) {
-        if(USE_SCREEPS_PROFILER && !profilerRooms[brain]){
+      if (brain) {
+        if (USE_SCREEPS_PROFILER && !profilerRooms[brain]) {
           continue;
         }
         const brainMemory = Memory.brains[brain];
-        if(brainMemory && brainMemory.suspend){
+        if (brainMemory && brainMemory.suspend) {
           continue;
         }
       }
       const dir = DirectiveWrapper(Game.flags[name]);
       const exist = !!this.directives[name];
-      if(dir && exist && spawn) {
+      if (dir && exist && spawn) {
         dir.HigherManager();
       }
-      if(!dir && !SUPPRESS_INVALID_DIRECTIVE_ALERTS && Game.time % 11 == 0) {
+      if (!dir && !SUPPRESS_INVALID_DIRECTIVE_ALERTS && Game.time % 11 == 0) {
         log.alert(`Invalid Directive ${name} at position: ${Game.flags[name].pos.roomName}`)
       }
     }
   }
 
   private buildBrains() {
-    const outpost: {[roomName:string]: string[]} = {};
+    const outpost: { [roomName: string]: string[] } = {};
     this.brainsMaps = {};
     const flagsByBrain = _.groupBy(this.cache.outpostFlags, flag => flag.memory[MEM.BRAIN]);
-    for(const room in Game.rooms){
-      if(Game.rooms[room].my){
+    for (const room in Game.rooms) {
+      if (Game.rooms[room].my) {
         const brainMemory = Memory.brains[room];
-        if(brainMemory && brainMemory.suspend) {
+        if (brainMemory && brainMemory.suspend) {
           this.CEO.notifier.alert("Brain is suspened", room, NotifierPriority.Critical);
           continue;
         }
-        if(Game.rooms[room].flags) {
-          outpost[room] = _.map(flagsByBrain[room],  flag => flag.memory.setPos ? derefRoomPosition(flag.memory.setPos).roomName : flag.pos.roomName)
+        if (Game.rooms[room].flags) {
+          outpost[room] = _.map(flagsByBrain[room], flag => flag.memory.setPos ? derefRoomPosition(flag.memory.setPos).roomName : flag.pos.roomName)
         }
         this.brainsMaps[room] = room;
       }
     }
-    for(const o in outpost) {
-      for(const r in outpost[o]) {
+    for (const o in outpost) {
+      for (const r in outpost[o]) {
         this.brainsMaps[r] = o;
       }
     }
     let id = 0;
-    for(const roomName in outpost) {
-      if(USE_SCREEPS_PROFILER && !profilerRooms[roomName]) {
-        if(Game.time % 20 == 0) {
+    for (const roomName in outpost) {
+      if (USE_SCREEPS_PROFILER && !profilerRooms[roomName]) {
+        if (Game.time % 20 == 0) {
           log.alert(`Profiler enabled on room ${roomName}.`);
         }
         continue;
@@ -146,14 +146,22 @@ export class BigBrain implements IBigBrain {
 
   public postRun(): void {
     // todo
-    if(this.errors.length > 0) {
-      for(const e of this.errors) {
+    if (this.errors.length > 0) {
+      for (const e of this.errors) {
         log.error(`${e.name}`);
       }
       this.shouldBuild = true;
     }
+    if (Memory.settings.enableVisuals) {
+      for (const brain in this.brains) {
+        this.brains[brain].visuals();
+      }
+    }
 
-    if(Game.time % GENERATE_PIXEL === 0 && Game.cpu.bucket === 10000 && this.shouldBuild === false) {
+
+    const weAreSafe = _.any(Game.rooms, room => !room.isSafe);
+
+    if (Game.time % GENERATE_PIXEL === 0 && Game.cpu.bucket === 10000 && this.shouldBuild === false && !weAreSafe) {
       Game.cpu.generatePixel();
     }
   }
@@ -163,7 +171,7 @@ export class BigBrain implements IBigBrain {
     this.try(() => this.tradeNetwork.init());
     this.try(() => this.terminalNetwork.init())
     this.CEO.init();
-    for(const brain in this.brains){
+    for (const brain in this.brains) {
       const start = Game.cpu.getUsed();
       this.try(() => this.brains[brain].init(), brain);
       Stats.log(`brains.${brain}.runtime`, Game.cpu.getUsed() - start);
@@ -180,12 +188,12 @@ export class BigBrain implements IBigBrain {
     this.refreshBrains();
     this.refreshDirectives();
 
-    for(const name in this.bots){
+    for (const name in this.bots) {
       this.bots[name].refresh();
     }
 
-    for(const name in this.managers) {
-      if(name && this.managers[name]) {
+    for (const name in this.managers) {
+      if (name && this.managers[name]) {
         this.managers[name].refresh();
       }
     }
@@ -193,8 +201,8 @@ export class BigBrain implements IBigBrain {
   }
 
   private refreshBrains() {
-    for(const brain in this.brains) {
-      try{
+    for (const brain in this.brains) {
+      try {
         this.brains[brain].refresh();
       } catch (e) {
         e.name = `Error occurred while refreshing Brain: ${brain}: ${e.name}`;
@@ -204,7 +212,7 @@ export class BigBrain implements IBigBrain {
   }
 
   private refreshDirectives() {
-    for(const name in this.directives) {
+    for (const name in this.directives) {
       this.directives[name].refresh()
     }
     this.buildDirectives(true);
@@ -212,7 +220,7 @@ export class BigBrain implements IBigBrain {
 
   public run(): void {
     this.CEO.run();
-    for(const brain in this.brains){
+    for (const brain in this.brains) {
       this.try(() => this.brains[brain].run(), brain);
     }
     this.try(() => this.terminalNetwork.run());

@@ -9,6 +9,7 @@ import { Roles } from "creepSetup/setup";
 import { log } from "../console/log";
 import { rightArrow, minBy } from "utils/utils";
 import { insideBunkerBounds } from "roomPlanner/layout/bunker";
+import { Swarm } from "bot/Swarm";
 
 export interface MoveOptions {
 	direct?: boolean;							// ignore all terrain costs
@@ -673,10 +674,10 @@ export class Movement {
 	// /**
 	//  * Travel to a room
 	//  */
-	// static goToRoom_swarm(swarm: Swarm, roomName: string, options: SwarmMoveOptions = {}): number {
-	// 	options.range = 24 - Math.max(swarm.width, swarm.height);
-	// 	return this.swarmMove(swarm, new RoomPosition(25, 25, roomName), options);
-	// }
+	static goToRoom_swarm(swarm: Swarm, roomName: string, options: SwarmMoveOptions = {}): number {
+		options.range = 24 - Math.max(swarm.width, swarm.height);
+		return this.swarmMove(swarm, new RoomPosition(25, 25, roomName), options);
+	}
 
 	/**
 	 * Park a creep off-roads
@@ -825,122 +826,122 @@ export class Movement {
 	/**
 	 * Moves a swarm to a destination, accounting for group pathfinding
 	 */
-	// static swarmMove(swarm: Swarm, destination: HasPos | RoomPosition, opts: SwarmMoveOptions = {}): number {
+	static swarmMove(swarm: Swarm, destination: HasPos | RoomPosition, opts: SwarmMoveOptions = {}): number {
 
-	// 	if (swarm.fatigue > 0) {
-	// 		Movement.circle(swarm.anchor, 'aqua', .3);
-	// 		console.log('tired');
-	// 		return ERR_TIRED;
-	// 	}
+		if (swarm.fatigue > 0) {
+			Movement.circle(swarm.anchor, 'aqua', .3);
+			console.log('tired');
+			return ERR_TIRED;
+		}
 
-	// 	// Set default options
-	// 	_.defaults(opts, {
-	// 		range      : 1, // Math.max(swarm.width, swarm.height),
-	// 		blockCreeps: false,
-	// 		exitCost   : 10,
-	// 	});
+		// Set default options
+		_.defaults(opts, {
+			range      : 1, // Math.max(swarm.width, swarm.height),
+			blockCreeps: false,
+			exitCost   : 10,
+		});
 
-	// 	// if (options.range! < Math.max(swarm.width, swarm.height)) {
-	// 	// 	log.warning(`Range specified is ${options.range}; not allowable for ${swarm.width}x${swarm.height} swarm!`);
-	// 	// }
+		// if (options.range! < Math.max(swarm.width, swarm.height)) {
+		// 	log.warning(`Range specified is ${options.range}; not allowable for ${swarm.width}x${swarm.height} swarm!`);
+		// }
 
-	// 	destination = normalizePos(destination);
+		destination = normalizePos(destination);
 
-	// 	// initialize data object
-	// 	if (!swarm.memory._go) {
-	// 		swarm.memory._go = {} as MoveData;
-	// 	}
-	// 	const moveData = swarm.memory._go as MoveData;
+		// initialize data object
+		if (!swarm.memory._go) {
+			swarm.memory._go = {} as MoveData;
+		}
+		const moveData = swarm.memory._go as MoveData;
 
-	// 	// manage case where creep is nearby destination
-	// 	if (opts.range != undefined && swarm.minRangeTo(destination) <= opts.range &&
-	// 		swarm.maxRangeTo(destination) <= opts.range + Math.max(swarm.width, swarm.height)) {
-	// 		delete swarm.memory._go;
-	// 		console.log('no action');
-	// 		return NO_ACTION;
-	// 	}
+		// manage case where creep is nearby destination
+		if (opts.range != undefined && swarm.minRangeTo(destination) <= opts.range &&
+			swarm.maxRangeTo(destination) <= opts.range + Math.max(swarm.width, swarm.height)) {
+			delete swarm.memory._go;
+			console.log('no action');
+			return NO_ACTION;
+		}
 
-	// 	const state = this.deserializeState(moveData, destination);
+		const state = this.deserializeState(moveData, destination);
 
-	// 	// check if swarm is stuck
-	// 	let stuck = false;
-	// 	if (state.lastCoord !== undefined) {
-	// 		if (sameCoord(swarm.anchor, state.lastCoord)) { // didn't move
-	// 			stuck = true;
-	// 		} else if (isExit(swarm.anchor) && isExit(state.lastCoord)) { // moved against exit
-	// 			stuck = true;
-	// 		}
-	// 	}
-	// 	if (stuck) {
-	// 		state.stuckCount++;
-	// 		this.circle(swarm.anchor, 'magenta', state.stuckCount * .3);
-	// 	} else {
-	// 		state.stuckCount = 0;
-	// 	}
+		// check if swarm is stuck
+		let stuck = false;
+		if (state.lastCoord !== undefined) {
+			if (sameCoord(swarm.anchor, state.lastCoord)) { // didn't move
+				stuck = true;
+			} else if (isExit(swarm.anchor) && isExit(state.lastCoord)) { // moved against exit
+				stuck = true;
+			}
+		}
+		if (stuck) {
+			state.stuckCount++;
+			this.circle(swarm.anchor, 'magenta', state.stuckCount * .3);
+		} else {
+			state.stuckCount = 0;
+		}
 
-	// 	// handle case where creep is stuck
-	// 	if (!opts.stuckValue) {
-	// 		opts.stuckValue = DEFAULT_STUCK_VALUE;
-	// 	}
-	// 	if (state.stuckCount >= opts.stuckValue && Math.random() > .5) {
-	// 		opts.blockCreeps = true;
-	// 		delete moveData.path;
-	// 	}
+		// handle case where creep is stuck
+		if (!opts.stuckValue) {
+			opts.stuckValue = DEFAULT_STUCK_VALUE;
+		}
+		if (state.stuckCount >= opts.stuckValue && Math.random() > .5) {
+			opts.blockCreeps = true;
+			delete moveData.path;
+		}
 
-	// 	// delete path cache if destination is different
-	// 	if (!destination.isEqualTo(state.destination)) {
-	// 		delete moveData.path;
-	// 	}
+		// delete path cache if destination is different
+		if (!destination.isEqualTo(state.destination)) {
+			delete moveData.path;
+		}
 
-	// 	if (opts.repathChance && Math.random() < opts.repathChance) {	// randomly repath with some probability
-	// 		delete moveData.path;
-	// 	}
+		if (opts.repathChance && Math.random() < opts.repathChance) {	// randomly repath with some probability
+			delete moveData.path;
+		}
 
-	// 	// pathfinding
-	// 	let newPath = false;
-	// 	if (!moveData.path) {
-	// 		newPath = true;
-	// 		state.destination = destination;
-	// 		const cpu = Game.cpu.getUsed();
-	// 		// (!) Pathfinding is done here
-	// 		const ret = Pathing.findSwarmPath(swarm.anchor, destination, swarm.width, swarm.height, opts);
-	// 		const cpuUsed = Game.cpu.getUsed() - cpu;
-	// 		state.cpu = _.round(cpuUsed + state.cpu);
-	// 		if (Game.time % 10 == 0 && state.cpu > REPORT_SWARM_CPU_THRESHOLD) {
-	// 			log.alert(`Movement: heavy cpu use for swarm with ${_.first(swarm.creeps).print}, cpu: ${state.cpu}. ` +
-	// 					  `(${swarm.anchor.print} ${rightArrow} ${destination.print})`);
-	// 		}
-	// 		let color = 'orange';
-	// 		if (ret.incomplete) {
-	// 			log.debug(`Movement: incomplete path for swarm with ${_.first(swarm.creeps).print}! ` +
-	// 					  `(${swarm.anchor.print} ${rightArrow} ${destination.print})`);
-	// 			color = 'red';
-	// 		}
-	// 		this.circle(swarm.anchor, color);
-	// 		moveData.path = Pathing.serializePath(swarm.anchor, ret.path, color);
-	// 		state.stuckCount = 0;
-	// 	}
+		// pathfinding
+		let newPath = false;
+		if (!moveData.path) {
+			newPath = true;
+			state.destination = destination;
+			const cpu = Game.cpu.getUsed();
+			// (!) Pathfinding is done here
+			const ret = Pathing.findSwarmPath(swarm.anchor, destination, swarm.width, swarm.height, opts);
+			const cpuUsed = Game.cpu.getUsed() - cpu;
+			state.cpu = _.round(cpuUsed + state.cpu);
+			if (Game.time % 10 == 0 && state.cpu > REPORT_SWARM_CPU_THRESHOLD) {
+				log.alert(`Movement: heavy cpu use for swarm with ${_.first(swarm.creeps).print}, cpu: ${state.cpu}. ` +
+						  `(${swarm.anchor.print} ${rightArrow} ${destination.print})`);
+			}
+			let color = 'orange';
+			if (ret.incomplete) {
+				log.debug(`Movement: incomplete path for swarm with ${_.first(swarm.creeps).print}! ` +
+						  `(${swarm.anchor.print} ${rightArrow} ${destination.print})`);
+				color = 'red';
+			}
+			this.circle(swarm.anchor, color);
+			moveData.path = Pathing.serializePath(swarm.anchor, ret.path, color);
+			state.stuckCount = 0;
+		}
 
-	// 	// uncomment to visualize destination
-	// 	this.circle(destination, 'orange');
+		// uncomment to visualize destination
+		this.circle(destination, 'orange');
 
-	// 	// Serialize state for swarm
-	// 	moveData.state = [swarm.anchor.x, swarm.anchor.y, state.stuckCount, state.cpu, destination.x, destination.y,
-	// 					  destination.roomName];
+		// Serialize state for swarm
+		moveData.state = [swarm.anchor.x, swarm.anchor.y, state.stuckCount, state.cpu, destination.x, destination.y,
+						  destination.roomName];
 
-	// 	if (!moveData.path || moveData.path.length == 0) {
-	// 		console.log(`No path from ${swarm.anchor.print} to ${destination.print}!`);
-	// 		return ERR_NO_PATH;
-	// 	}
+		if (!moveData.path || moveData.path.length == 0) {
+			console.log(`No path from ${swarm.anchor.print} to ${destination.print}!`);
+			return ERR_NO_PATH;
+		}
 
-	// 	// consume path
-	// 	if (state.stuckCount == 0 && !newPath) {
-	// 		moveData.path = moveData.path.substr(1);
-	// 	}
-	// 	const nextDirection = parseInt(moveData.path[0], 10) as DirectionConstant;
+		// consume path
+		if (state.stuckCount == 0 && !newPath) {
+			moveData.path = moveData.path.substr(1);
+		}
+		const nextDirection = parseInt(moveData.path[0], 10) as DirectionConstant;
 
-	// 	return swarm.move(nextDirection);
-	// }
+		return swarm.move(nextDirection);
+	}
 
 	private static combatMoveCallbackModifier(room: Room, matrix: CostMatrix,
 											  approach: PathFinderGoal[], avoid: PathFinderGoal[],
@@ -989,103 +990,103 @@ export class Movement {
 	}
 
 
-	// static swarmCombatMove(swarm: Swarm, approach: PathFinderGoal[], avoid: PathFinderGoal[],
-	// 					   options: CombatMoveOptions = {}): number {
-	// 	_.defaults(options, {
-	// 		allowExit     : false,
-	// 		avoidPenalty  : 10,
-	// 		approachBonus : 5,
-	// 		preferRamparts: true,
-	// 		blockMyCreeps : true, // todo: is this necessary?
-	// 	});
+	static swarmCombatMove(swarm: Swarm, approach: PathFinderGoal[], avoid: PathFinderGoal[],
+						   options: CombatMoveOptions = {}): number {
+		_.defaults(options, {
+			allowExit     : false,
+			avoidPenalty  : 10,
+			approachBonus : 5,
+			preferRamparts: true,
+			blockMyCreeps : true, // todo: is this necessary?
+		});
 
-	// 	const debug = false;
-	// 	const callback = (roomName: string) => {
-	// 		const room = swarm.roomsByName[roomName];
-	// 		const matrixOpts: Partial<MatrixOptions> = {
-	// 			explicitTerrainCosts: true,
-	// 			swarmWidth          : swarm.width,
-	// 			swarmHeight         : swarm.height,
-	// 			blockExits          : !options.allowExit, // todo: maybe refactor allowExit => blockExits
-	// 		};
-	// 		let matrix = MatrixLib.getMatrix(roomName, matrixOpts).clone();
-	// 		if (room) {
-	// 			matrix = matrix.clone();
-	// 			if (options.blockMyCreeps) {
-	// 				const otherCreeps = _.filter(room.creeps, creep => !_.any(swarm.creeps, c => c.name == creep.name));
-	// 				MatrixLib.blockAfterMaxPooling(matrix, otherCreeps, swarm.width, swarm.height);
-	// 			}
-	// 			// Pathing.blockHostileCreeps(matrix, creep.room);
-	// 			Movement.combatMoveCallbackModifier(room, matrix, approach, avoid, options);
-	// 			// TODO: ^ needs to take swarm size into account
-	// 		}
-	// 		if (options.displayCostMatrix) {
-	// 			Visualizer.displayCostMatrix(matrix, roomName);
-	// 		}
-	// 		return matrix;
-	// 	};
+		const debug = false;
+		const callback = (roomName: string) => {
+			const room = swarm.roomsByName[roomName];
+			const matrixOpts: Partial<MatrixOptions> = {
+				explicitTerrainCosts: true,
+				swarmWidth          : swarm.width,
+				swarmHeight         : swarm.height,
+				blockExits          : !options.allowExit, // todo: maybe refactor allowExit => blockExits
+			};
+			let matrix = MatrixLib.getMatrix(roomName, matrixOpts).clone();
+			if (room) {
+				matrix = matrix.clone();
+				if (options.blockMyCreeps) {
+					const otherCreeps = _.filter(room.creeps, creep => !_.any(swarm.creeps, c => c.name == creep.name));
+					MatrixLib.blockAfterMaxPooling(matrix, otherCreeps, swarm.width, swarm.height);
+				}
+				// Pathing.blockHostileCreeps(matrix, creep.room);
+				Movement.combatMoveCallbackModifier(room, matrix, approach, avoid, options);
+				// TODO: ^ needs to take swarm size into account
+			}
+			if (options.displayCostMatrix) {
+				// Visualizer.displayCostMatrix(matrix, roomName);
+			}
+			return matrix;
+		};
 
-	// 	let outcome: number = NO_ACTION;
+		let outcome: number = NO_ACTION;
 
-	// 	// Flee from bad things that that you're too close to
-	// 	if (avoid.length > 0) {
-	// 		const size = Math.max(swarm.width, swarm.height);
-	// 		if (_.any(avoid, goal => swarm.minRangeTo(goal) <= goal.range)) {
-	// 			const allAvoid = _.flatten(_.map(avoid, goal =>
-	// 				_.map(Pathing.getPosWindow(goal.pos, -swarm.width, -swarm.height), pos => ({
-	// 					pos  : pos,
-	// 					range: goal.range
-	// 				})))) as PathFinderGoal[];
-	// 			if (options.displayAvoid) {
-	// 				const room = swarm.rooms[0];
-	// 				for (const avoid of allAvoid) {
-	// 					const {x, y} = avoid.pos;
-	// 					room.visual.text(avoid.range.toString(), x, y, {color: 'ff0099'});
-	// 				}
-	// 			}
-	// 			const avoidRet = PathFinder.search(swarm.anchor, allAvoid, {
-	// 				roomCallback: callback,
-	// 				flee        : true,
-	// 				maxRooms    : options.allowExit ? 5 : 1,
-	// 				plainCost   : 2,
-	// 				swampCost   : 10,
-	// 			});
-	// 			if (avoidRet.path.length > 0) {
-	// 				if (debug) Pathing.serializePath(swarm.anchor, avoidRet.path, 'magenta');
-	// 				outcome = swarm.move(swarm.anchor.getDirectionTo(avoidRet.path[0]));
-	// 				if (outcome == OK) {
-	// 					return outcome;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
+		// Flee from bad things that that you're too close to
+		if (avoid.length > 0) {
+			const size = Math.max(swarm.width, swarm.height);
+			if (_.any(avoid, goal => swarm.minRangeTo(goal) <= goal.range)) {
+				const allAvoid = _.flatten(_.map(avoid, goal =>
+					_.map(Pathing.getPosWindow(goal.pos, -swarm.width, -swarm.height), pos => ({
+						pos  : pos,
+						range: goal.range
+					})))) as PathFinderGoal[];
+				if (options.displayAvoid) {
+					const room = swarm.rooms[0];
+					for (const avoid of allAvoid) {
+						const {x, y} = avoid.pos;
+						room.visual.text(avoid.range.toString(), x, y, {color: 'ff0099'});
+					}
+				}
+				const avoidRet = PathFinder.search(swarm.anchor, allAvoid, {
+					roomCallback: callback,
+					flee        : true,
+					maxRooms    : options.allowExit ? 5 : 1,
+					plainCost   : 2,
+					swampCost   : 10,
+				});
+				if (avoidRet.path.length > 0) {
+					if (debug) Pathing.serializePath(swarm.anchor, avoidRet.path, 'magenta');
+					outcome = swarm.move(swarm.anchor.getDirectionTo(avoidRet.path[0]));
+					if (outcome == OK) {
+						return outcome;
+					}
+				}
+			}
+		}
 
-	// 	// Approach things you want to go to if you're out of range of all the baddies
-	// 	if (approach.length > 0) {
-	// 		if (!_.any(approach, goal => swarm.minRangeTo(goal) <= goal.range)) {
-	// 			const allApproach = _.flatten(_.map(approach, goal =>
-	// 				_.map(Pathing.getPosWindow(goal.pos, -swarm.width, -swarm.height), pos => ({
-	// 					pos  : pos,
-	// 					range: goal.range
-	// 				})))) as PathFinderGoal[];
-	// 			const approachRet = PathFinder.search(swarm.anchor, allApproach, {
-	// 				roomCallback: callback,
-	// 				maxRooms    : 1,
-	// 				plainCost   : 2,
-	// 				swampCost   : 10,
-	// 			});
-	// 			if (approachRet.path.length > 0) {
-	// 				if (debug) Pathing.serializePath(swarm.anchor, approachRet.path, 'cyan');
-	// 				outcome = swarm.move(swarm.anchor.getDirectionTo(approachRet.path[0]));
-	// 				if (outcome == OK) {
-	// 					return outcome;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
+		// Approach things you want to go to if you're out of range of all the baddies
+		if (approach.length > 0) {
+			if (!_.any(approach, goal => swarm.minRangeTo(goal) <= goal.range)) {
+				const allApproach = _.flatten(_.map(approach, goal =>
+					_.map(Pathing.getPosWindow(goal.pos, -swarm.width, -swarm.height), pos => ({
+						pos  : pos,
+						range: goal.range
+					})))) as PathFinderGoal[];
+				const approachRet = PathFinder.search(swarm.anchor, allApproach, {
+					roomCallback: callback,
+					maxRooms    : 1,
+					plainCost   : 2,
+					swampCost   : 10,
+				});
+				if (approachRet.path.length > 0) {
+					if (debug) Pathing.serializePath(swarm.anchor, approachRet.path, 'cyan');
+					outcome = swarm.move(swarm.anchor.getDirectionTo(approachRet.path[0]));
+					if (outcome == OK) {
+						return outcome;
+					}
+				}
+			}
+		}
 
-	// 	return outcome;
-	// }
+		return outcome;
+	}
 
 	static combatMove(creep: Bot, approach: PathFinderGoal[], avoid: PathFinderGoal[],
 					  opts: CombatMoveOptions = {}): number {

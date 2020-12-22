@@ -18,6 +18,7 @@ export class DirectiveMineral extends Directive {
             this.brain.destinations.push({pos: this.pos, order: this.memory[MEM.TICK] || Game.time });
         }
     }
+
     HigherManager(): void {
         let priority: number = ManagerPriority.ownedRoom.mineral;
         if(this.room && this.room.my) {
@@ -27,7 +28,7 @@ export class DirectiveMineral extends Directive {
         } else {
             priority = ManagerPriority.remoteSKRoom.mineral;
         }
-        this.managers.mineral = new ExtractorManager(this, ManagerPriority.ownedRoom.mineral);
+        this.managers.mineral = new ExtractorManager(this, priority);
     }
     init(): void {
 

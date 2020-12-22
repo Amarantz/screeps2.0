@@ -7,6 +7,10 @@ import { Bot } from "bot/Bot";
 import { Pathing } from "movement/Pathing";
 import { getManager, setManager } from "bot/AnyBot";
 import { SpawnRequest, SpawnRequestOptions } from "components/spawner";
+import { Abathur } from "resources/abathur";
+import { CombatBot } from "bot/CombatBot";
+import { Tasks } from "tasks/Tasks";
+import { CombatCreepSetup } from "creepSetup/CombatCreepSetup";
 
 
 export interface ManagerInitializer {
@@ -76,7 +80,8 @@ export abstract class Manager {
     spawnGroup: undefined;
     memory: ManagerMemory;
     private _creeps: { [roleName:string]: Creep[] };
-    private _bots: {[roleName:string]: Bot[]};
+	private _bots: {[roleName:string]: Bot[]};
+	private _combatBots: {[roleName:string]: CombatBot[]};
     creepUsageReport: { [roleName: string]: [number, number] | undefined };
     private shouldSpawnAt?: number;
 
@@ -90,7 +95,8 @@ export abstract class Manager {
         this.pos = initializer.pos;
         this.brain = hasBrain(initializer) ? initializer.brain : initializer;
         this._creeps = {};
-        this._bots = {};
+		this._bots = {};
+		this._combatBots = {};
         this.recalculateCreeps();
         this.creepUsageReport = _.mapValues(this._creeps, creep => undefined);
         BigBrain.managers[this.ref] = this;
@@ -160,9 +166,57 @@ export abstract class Manager {
     recalculateCreeps() {
         this._creeps = _.mapValues(BigBrain.cache.managers[this.ref], creepsOfRole => _.map(creepsOfRole, creepName => Game.creeps[creepName]));
         for(const role in this._bots){
-            this.synchronizeBots(role);
+			this.synchronizeBots(role);
+
+			for (const role in this._combatBots) {
+				this.synchronizeCombatBots(role);
+			}
         }
-    }
+	}
+
+	protected combatBots(role: string, opts: BotOptions = {}): CombatBot[] {
+		if (!this._combatBots[role]) {
+			this._combatBots[role] = [];
+			this.synchronizeCombatBots(role, opts.notifyWhenAttacked);
+		}
+		return this._combatBots[role];
+	}
+
+	private synchronizeCombatBots(role: string, notifyWhenAttacked?: boolean): void {
+		// Synchronize the corresponding sets of CombatBots
+		const zergNames = _.zipObject(_.map(this._combatBots[role] || [],
+											zerg => [zerg.name, true])) as { [name: string]: boolean };
+		const creepNames = _.zipObject(_.map(this._creeps[role] || [],
+											 creep => [creep.name, true])) as { [name: string]: boolean };
+		// Add new creeps which aren't in the _combatBots record
+		for (const creep of this._creeps[role] || []) {
+			if (!zergNames[creep.name]) {
+				if (BigBrain.bots[creep.name] && (<CombatBot>BigBrain.bots[creep.name]).isCombatBot) {
+					this._combatBots[role].push(BigBrain.bots[creep.name]);
+				} else {
+					this._combatBots[role].push(new CombatBot(creep, notifyWhenAttacked));
+				}
+			}
+		}
+		// Remove dead/reassigned creeps from the _combatBots record
+		const removeBotsNames: string[] = [];
+		for (const zerg of this._combatBots[role]) {
+			if (!creepNames[zerg.name]) {
+				removeBotsNames.push(zerg.name);
+			}
+		}
+		_.remove(this._combatBots[role], deadBots => removeBotsNames.includes(deadBots.name));
+	}
+
+	getAllCombatBots(): CombatBot[] {
+		const allCombatBots: CombatBot[] = [];
+		for (const role in this._creeps) {
+			for (const combatBots of this.combatBots(role)) {
+				allCombatBots.push(combatBots);
+			}
+		}
+		return allCombatBots;
+	}
 
     /**
 	 * Gets the "ID" of the outpost this overlord is operating in. 0 for owned rooms, >= 1 for outposts, -1 for other
@@ -223,8 +277,8 @@ export abstract class Manager {
     }
 
     	/**
-	 * Wraps all creeps of a given role to Zerg objects and updates the contents in future ticks to avoid having to
-	 * explicitly refresh groups of Zerg
+	 * Wraps all creeps of a given role to Bots objects and updates the contents in future ticks to avoid having to
+	 * explicitly refresh groups of Bots
 	 */
 	protected bots(role: string, opts: BotOptions = {}): Bot[] {
 		if (!this._bots[role]) {
@@ -235,7 +289,7 @@ export abstract class Manager {
     }
 
     private synchronizeBots(role: string, notifyWhenAttacked?: boolean): void {
-		// Synchronize the corresponding sets of Zerg
+		// Synchronize the corresponding sets of Bots
 		const botsNames = _.zipObject(_.map(this._bots[role] || [],
 											bots => [bots.name, true])) as { [name: string]: boolean };
 		const creepNames = _.zipObject(_.map(this._creeps[role] || [],
@@ -247,13 +301,13 @@ export abstract class Manager {
 			}
 		}
 		// Remove dead/reassigned creeps from the _bots record
-		const removeZergNames: string[] = [];
+		const removeBotsNames: string[] = [];
 		for (const bots of this._bots[role]) {
 			if (!creepNames[bots.name]) {
-				removeZergNames.push(bots.name);
+				removeBotsNames.push(bots.name);
 			}
 		}
-		_.remove(this._bots[role], deadZerg => removeZergNames.includes(deadZerg.name));
+		_.remove(this._bots[role], deadBots => removeBotsNames.includes(deadBots.name));
 	}
 
     getAllBots(): Bot[] {
@@ -278,7 +332,49 @@ export abstract class Manager {
 			bot.reassign(this.brain.managers.default);
 		}
 		// TODO: CombatOverlord
-    }
+	}
+
+	protected handleBoosting(bot: Bot | CombatBot): void {
+		const brain = BigBrain.brains[bot.room.name] as Brain | undefined;
+		const engineeringBay = brain ? brain.engineeringBay : undefined;
+
+		if(engineeringBay) {
+			if(!bot.needsBoosts){
+				log.error(`BigBrain.handleBoosting() called for ${bot.print}, but not boosts needed!`);
+			}
+
+			const neededBoosts = bot.getNeededBoosts();
+			const neededBoostResources = _.keys(neededBoosts);
+
+			const [moveBoosts, nonMoveBoosts] = _.partition(neededBoostResources,
+															resource => Abathur.isMoveBoost(<ResourceConstant>resource));
+
+			for (const boost of [...moveBoosts, nonMoveBoosts]) { // try to get move boosts first if they're available
+				const boostLab = _.find(engineeringBay.boostingLabs, lab => lab.mineralType == boost);
+				if (boostLab) {
+					bot.task = Tasks.getBoosted(boostLab, <ResourceConstant>boost);
+					return;
+				}
+			}
+		}
+	}
+
+	protected reassignIdleCreeps(role: string, maxPerTick=1): boolean {
+		// Find all creeps without an overlord
+		const idleCreeps = _.filter(this.brain.getCreepsByRole(role), creep => !getManager(creep));
+		// Reassign them all to this flag
+		let reassigned = 0;
+		for (const creep of idleCreeps) {
+			// TODO: check range of creep from overlord
+			setManager(creep, this);
+			reassigned++;
+			if (reassigned >= maxPerTick) {
+				break;
+			}
+		}
+		return reassigned > 0;
+	}
+
 
     	/**
 	 * Standard sequence of actions for running task-based creeps
@@ -293,7 +389,7 @@ export abstract class Manager {
 			}
 			if (creep.isIdle) {
 				if (creep.needsBoosts) {
-					// this.handleBoosting(creep);
+					this.handleBoosting(creep);
 				} else {
 					taskHandler(creep);
 				}
@@ -352,7 +448,6 @@ export abstract class Manager {
 		let spawnQuantity = quantity - creepQuantity;
 		if (opts.reassignIdle && spawnQuantity > 0) {
             const idleCreeps = _.filter(this.brain.getCreepsByRole(setup.role), creep => !getManager(creep));
-            console.log('idleCreeps', idleCreeps)
 			for (let i = 0; i < Math.min(idleCreeps.length, spawnQuantity); i++) {
 				setManager(idleCreeps[i], this);
 				spawnQuantity--;
@@ -375,7 +470,7 @@ export abstract class Manager {
     	/**
 	 * Create a creep setup and enqueue it to the Hatchery; does not include automatic reporting
 	 */
-	protected requestCreep(setup: CreepSetup, opts = {} as CreepRequestOptions) {
+	protected requestCreep(setup: CreepSetup | CombatCreepSetup, opts = {} as CreepRequestOptions) {
 		_.defaults(opts, {priority: this.priority, prespawn: DEFAULT_PRESPAWN});
 		const spawner = this.spawnGroup || this.brain.spawnGroup || this.brain.spawner;
 		if (spawner) {
@@ -407,15 +502,19 @@ export abstract class Manager {
 	 */
 	preInit(): void {
 		// Handle requesting boosts from the evolution chamber
-		// const allBots = _.flatten([..._.values(this._Bots)]) as (Bot)[];
-		// for (const bot of allBots) {
-		// 	if (bot.needsBoosts) {
-		// 		const brain = BigBrain.brains[bot.room.name] as Brain | undefined;
-		// 		const evolutionChamber = brain ? brain.evolutionChamber : undefined;
-		// 		if (evolutionChamber) {
-		// 			evolutionChamber.requestBoosts(zerg.getNeededBoosts());
-		// 		}
-		// 	}
-		// }
+		const allBots = _.flatten([..._.values(this._bots)]) as (Bot)[];
+		for (const bot of allBots) {
+			if (bot.needsBoosts) {
+				const brain = BigBrain.brains[bot.room.name] as Brain | undefined;
+				const evolutionChamber = brain ? brain.engineeringBay : undefined;
+				if (evolutionChamber) {
+					evolutionChamber.requestBoosts(bot.getNeededBoosts());
+				}
+			}
+		}
+	}
+
+	visuals(): void {
+
 	}
 }
