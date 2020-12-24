@@ -13,6 +13,7 @@ import { DirectiveOutpost } from "directives/colony/outpost";
 import { $ } from '../../caching/GlobalCache';
 import { brainStage } from "Brian";
 import { TaskGetBoosted } from "tasks/instances/getBoosted";
+import { DirectiveModularDismantle } from "directives/targeting/modualarDismantle";
 
 export const StandardMinerSetupCost = bodyCost(Setups.worker.miner.standard.generateBody(Infinity));
 
@@ -331,7 +332,10 @@ export class MiningManager extends Manager {
 	}
 
 	init() {
-		this.wishlist(this.minersNeeded, this.setup);
+		const invaderCore = this.room && this.room.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_INVADER_CORE });
+		if (!invaderCore?.length) {
+			this.wishlist(this.minersNeeded, this.setup);
+		}
 		this.registerEnergyRequests();
 	}
 
@@ -742,6 +746,10 @@ export class MiningManager extends Manager {
 		}
 		if (Game.time % SUICIDE_CHECK_FREQUENCY == 0) {
 			this.suicideOldMiners();
+		}
+		const invaderCore = this.room && this.room.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_INVADER_CORE});
+		if (invaderCore?.length && Cartographer.roomType(this.pos.roomName) !== ROOMTYPE_SOURCEKEEPER) {
+			DirectiveModularDismantle.createIfNotPresent(invaderCore[0].pos, 'pos');
 		}
 	}
 }
